@@ -1,0 +1,15 @@
+{
+  "name": "sih2026-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Firebase Cloud Functions and Firestore backend for SIH2026",
+  "scripts": {
+    "emulators:start": "firebase emulators:start",
+    "emulators:export": "firebase emulators:export ./emulator-data",
+    "emulators:import": "firebase emulators:start --import=./emulator-data",
+    "seed": "npm --prefix functions run seed"
+  },
+  "devDependencies": {
+    "firebase-tools": "^13.31.1"
+  }
+}

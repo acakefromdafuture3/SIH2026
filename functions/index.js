@@ -1,0 +1,394 @@
+/**
+ * SIH2026 — Firebase Cloud Functions Entrypoint
+ * Region: asia-south1 (Mumbai)
+ */
+
+"use strict";
+
+const { onRequest }          = require("firebase-functions/v2/https");
+const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { onDocumentWritten }  = require("firebase-functions/v2/firestore");
+const { setGlobalOptions }   = require("firebase-functions/v2");
+const logger                 = require("firebase-functions/logger");
+const admin                  = require("firebase-admin");
+// firebase-admin v12+ moved FieldValue out of the admin.firestore namespace
+const { FieldValue }         = require("firebase-admin/firestore");
+
+// ─── Global config ─────────────────────────────────────────────────────────────
+setGlobalOptions({
+  region: "asia-south1",
+  cors: true,
+  invoker: "public",
+});
+
+admin.initializeApp();
+const db = admin.firestore();
+
+// ─── Pure scoring engines ──────────────────────────────────────────────────────
+const { computePriorityScore, computeTopFactors } = require("./priorityEngine");
+const { computeSuitability }                       = require("./siteRanking");
+
+// ─── Seed utility (kept for HTTP seed endpoint) ────────────────────────────────
+const { seedFirestore, relocationSitesData } = require("./seed/seedData");
+
+// ─── Fields that are written BY recomputePriority (used for loop guard) ────────
+const PRIORITY_COMPUTED_FIELDS = new Set([
+  "priority_score",
+  "priority_category",
+  "top_factors",
+  "updated_at",
+]);
+
+// ─── Haversine distance helper ─────────────────────────────────────────────────
+/**
+ * Straight-line distance between two lat/lng points in kilometres.
+ * @param {number} lat1 @param {number} lng1
+ * @param {number} lat2 @param {number} lng2
+ * @returns {number}
+ */
+function haversineKm(lat1, lng1, lat2, lng2) {
+  const R    = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+    Math.cos((lat2 * Math.PI) / 180) *
+    Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+// ─── Helpers ───────────────────────────────────────────────────────────────────
+async function getWeights() {
+  const snap = await db.collection("config").doc("weights").get();
+  if (!snap.exists) {
+    throw new HttpsError(
+      "not-found",
+      "config/weights document not found. Run npm run seed first."
+    );
+  }
+  return snap.data();
+}
+
+// ==============================================================================
+// 1. recomputePriority  — Firestore trigger on villages/{villageId}
+// ==============================================================================
+exports.recomputePriority = onDocumentWritten(
+  "villages/{villageId}",
+  async (event) => {
+    const { villageId } = event.params;
+
+    // After-state of the document
+    const afterSnap = event.data.after;
+    if (!afterSnap.exists) {
+      // Document was deleted — nothing to do
+      return null;
+    }
+
+    const after  = afterSnap.data();
+    const before = event.data.before.exists ? event.data.before.data() : {};
+
+    // ── Infinite-loop guard ───────────────────────────────────────────────────
+    // If EVERY changed field is one that we ourselves write, skip to avoid
+    // infinite write loops.
+    const changedFields = Object.keys(after).filter(
+      (k) => JSON.stringify(after[k]) !== JSON.stringify(before[k])
+    );
+    if (
+      changedFields.length > 0 &&
+      changedFields.every((f) => PRIORITY_COMPUTED_FIELDS.has(f))
+    ) {
+      logger.info(`[recomputePriority] ${villageId}: only computed fields changed — skipping.`);
+      return null;
+    }
+
+    // ── Load weights ──────────────────────────────────────────────────────────
+    let weights;
+    try {
+      const weightsSnap = await db.collection("config").doc("weights").get();
+      weights = weightsSnap.exists ? weightsSnap.data().priority : null;
+    } catch (err) {
+      logger.error(`[recomputePriority] ${villageId}: failed to load weights`, err);
+      return null;
+    }
+
+    if (!weights) {
+      logger.warn(`[recomputePriority] ${villageId}: config/weights.priority missing — using defaults.`);
+      weights = { hazard: 0.35, exposure: 0.25, vulnerability: 0.20, history: 0.20 };
+    }
+
+    // ── Compute ───────────────────────────────────────────────────────────────
+    const { priority_score, priority_category } = computePriorityScore(after, weights);
+    const top_factors = computeTopFactors(after.hazard_factors || {});
+
+    logger.info(`[recomputePriority] ${villageId}: score=${priority_score} category=${priority_category}`);
+
+    // ── Write back (only the computed fields) ─────────────────────────────────
+    await db.collection("villages").doc(villageId).update({
+      priority_score,
+      priority_category,
+      top_factors,
+      updated_at: FieldValue.serverTimestamp(),
+    });
+
+    return null;
+  }
+);
+
+// ==============================================================================
+// 2. getVillages  — onCall
+//    Optional params: { district?, priority_category? }
+//    Returns village docs sorted by priority_score desc.
+// ==============================================================================
+exports.getVillages = onCall({ cors: true, invoker: "public" }, async (request) => {
+  const { district, priority_category } = request.data || {};
+
+  let query = db.collection("villages");
+
+  if (district) {
+    query = query.where("district", "==", district);
+  }
+  if (priority_category) {
+    query = query.where("priority_category", "==", priority_category);
+  }
+
+  const snapshot = await query.get();
+  const villages = [];
+  snapshot.forEach((doc) => villages.push({ id: doc.id, ...doc.data() }));
+
+  // Sort in-process (avoids needing a composite index for every filter combo)
+  villages.sort((a, b) => (b.priority_score || 0) - (a.priority_score || 0));
+
+  logger.info(`[getVillages] returned ${villages.length} villages`, { district, priority_category });
+  return { villages, count: villages.length };
+});
+
+// ==============================================================================
+// 3. getVillageDetail  — onCall
+//    Param: { villageId }
+//    Returns full village doc; if recommended_site_id is set, merges site doc.
+// ==============================================================================
+exports.getVillageDetail = onCall({ cors: true, invoker: "public" }, async (request) => {
+  const { villageId } = request.data || {};
+
+  if (!villageId) {
+    throw new HttpsError("invalid-argument", "villageId is required.");
+  }
+
+  const villageSnap = await db.collection("villages").doc(villageId).get();
+  if (!villageSnap.exists) {
+    throw new HttpsError("not-found", `Village '${villageId}' not found.`);
+  }
+
+  const village = { id: villageSnap.id, ...villageSnap.data() };
+
+  // Merge recommended site if one has been assigned
+  if (village.recommended_site_id) {
+    const siteSnap = await db.collection("relocation_sites").doc(village.recommended_site_id).get();
+    if (siteSnap.exists) {
+      village.recommended_site = { id: siteSnap.id, ...siteSnap.data() };
+    }
+  }
+
+  logger.info(`[getVillageDetail] ${villageId} fetched.`);
+  return { village };
+});
+
+// ==============================================================================
+// 4. getSiteMatches  — onCall
+//    Param: { villageId }
+//    Loads the village + all relocation_sites, computes haversine distance and
+//    suitability score for each site, returns sorted array (best first), and
+//    writes/updates village_site_matches as a side effect.
+// ==============================================================================
+exports.getSiteMatches = onCall({ cors: true, invoker: "public" }, async (request) => {
+  const { villageId } = request.data || {};
+
+  if (!villageId) {
+    throw new HttpsError("invalid-argument", "villageId is required.");
+  }
+
+  // Load village
+  const villageSnap = await db.collection("villages").doc(villageId).get();
+  if (!villageSnap.exists) {
+    throw new HttpsError("not-found", `Village '${villageId}' not found.`);
+  }
+  const village = { id: villageSnap.id, ...villageSnap.data() };
+
+  // Load site_ranking weights
+  const weightsDoc = await db.collection("config").doc("weights").get();
+  const siteWeights = weightsDoc.exists
+    ? weightsDoc.data().site_ranking
+    : { safety: 0.40, capacity: 0.20, infrastructure: 0.15, accessibility: 0.10, water: 0.10, distance: 0.05 };
+
+  // Load all relocation sites
+  const sitesSnap  = await db.collection("relocation_sites").get();
+  const sitesRaw   = [];
+  sitesSnap.forEach((doc) => sitesRaw.push({ id: doc.id, ...doc.data() }));
+
+  // Score each site
+  const scored = sitesRaw.map((site) => {
+    const distance_km = haversineKm(
+      village.lat, village.lng,
+      site.lat,    site.lng
+    );
+    const { suitability_score, criteria_breakdown } = computeSuitability(
+      site, village, distance_km, siteWeights
+    );
+    return {
+      site_id:          site.id,
+      site_name:        site.name,
+      distance_km:      Math.round(distance_km * 10) / 10,
+      suitability_score,
+      criteria_breakdown,
+      site,
+    };
+  });
+
+  // Sort best match first
+  scored.sort((a, b) => b.suitability_score - a.suitability_score);
+
+  // ── Side-effect: write village_site_matches docs ──────────────────────────
+  const batch = db.batch();
+  for (const match of scored) {
+    const matchId  = `${villageId}_${match.site_id}`;
+    const matchRef = db.collection("village_site_matches").doc(matchId);
+    batch.set(
+      matchRef,
+      {
+        village_id:         villageId,
+        site_id:            match.site_id,
+        distance_km:        match.distance_km,
+        suitability_score:  match.suitability_score,
+        criteria_breakdown: match.criteria_breakdown,
+        computed_at:        FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+  }
+  await batch.commit();
+
+  logger.info(`[getSiteMatches] ${villageId}: ranked ${scored.length} sites, matches written.`);
+
+  // Return matches without the nested site object (keep payload lean)
+  return {
+    village_id: villageId,
+    matches:    scored.map(({ site, ...rest }) => rest),
+  };
+});
+
+// ==============================================================================
+// 5. updateWeights  — onCall
+//    Param: { priority?, site_ranking? }  (partial or full weights object)
+//    Overwrites config/weights, then batch-recomputes priority for all villages.
+// ==============================================================================
+exports.updateWeights = onCall({ cors: true, invoker: "public" }, async (request) => {
+  const { priority, site_ranking } = request.data || {};
+
+  if (!priority && !site_ranking) {
+    throw new HttpsError(
+      "invalid-argument",
+      "Provide at least one of: priority, site_ranking weight objects."
+    );
+  }
+
+  // Validate that priority weights sum to ~1.0 if provided
+  if (priority) {
+    const sum = Object.values(priority).reduce((a, b) => a + b, 0);
+    if (Math.abs(sum - 1.0) > 0.01) {
+      throw new HttpsError(
+        "invalid-argument",
+        `priority weights must sum to 1.0, got ${sum.toFixed(3)}`
+      );
+    }
+  }
+
+  // Validate site_ranking weights sum to ~1.0 if provided
+  if (site_ranking) {
+    const sum = Object.values(site_ranking).reduce((a, b) => a + b, 0);
+    if (Math.abs(sum - 1.0) > 0.01) {
+      throw new HttpsError(
+        "invalid-argument",
+        `site_ranking weights must sum to 1.0, got ${sum.toFixed(3)}`
+      );
+    }
+  }
+
+  // Load existing weights so we merge (don't clobber the other key)
+  const existing   = await getWeights();
+  const newWeights = {
+    priority:     priority     || existing.priority,
+    site_ranking: site_ranking || existing.site_ranking,
+  };
+
+  await db.collection("config").doc("weights").set(newWeights);
+  logger.info("[updateWeights] config/weights updated.", newWeights);
+
+  // ── Batch-recompute priority for all villages ─────────────────────────────
+  const villagesSnap = await db.collection("villages").get();
+  const w = newWeights.priority;
+
+  const BATCH_SIZE = 499; // Firestore batch limit is 500 ops
+  let batch   = db.batch();
+  let opCount = 0;
+  let recomputed = 0;
+
+  for (const doc of villagesSnap.docs) {
+    const village = doc.data();
+    const { priority_score, priority_category } = computePriorityScore(village, w);
+    const top_factors = computeTopFactors(village.hazard_factors || {});
+
+    batch.update(doc.ref, {
+      priority_score,
+      priority_category,
+      top_factors,
+      updated_at: FieldValue.serverTimestamp(),
+    });
+    opCount++;
+    recomputed++;
+
+    if (opCount >= BATCH_SIZE) {
+      await batch.commit();
+      batch   = db.batch();
+      opCount = 0;
+    }
+  }
+  if (opCount > 0) {
+    await batch.commit();
+  }
+
+  logger.info(`[updateWeights] Recomputed priority for ${recomputed} villages.`);
+
+  return {
+    message:    `Weights updated and priority recomputed for ${recomputed} villages.`,
+    new_weights: newWeights,
+    villages_recomputed: recomputed,
+  };
+});
+
+// ==============================================================================
+// Dev / Health utilities (onRequest — kept for quick curl checks)
+// ==============================================================================
+
+/** Quick health check */
+exports.healthCheck = onRequest({ cors: true, invoker: "public" }, (req, res) => {
+  logger.info("Health check called", { structuredData: true });
+  res.status(200).json({
+    status:    "ok",
+    timestamp: new Date().toISOString(),
+    region:    "asia-south1",
+    message:   "SIH2026 Cloud Functions are running",
+  });
+});
+
+/** Seed Firestore from HTTP (emulator dev only) */
+exports.seedDatabase = onRequest({ cors: true, invoker: "public" }, async (req, res) => {
+  try {
+    const result = await seedFirestore(db);
+    logger.info("Database seeded successfully", result);
+    res.status(200).json({ message: "Sample data seeded successfully", ...result });
+  } catch (error) {
+    logger.error("Error seeding database:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
