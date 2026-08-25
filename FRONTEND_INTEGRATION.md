@@ -72,7 +72,7 @@ export async function fetchVillages(district, priorityCategory) {
   
   // Payload is optional (pass empty object or omit filters)
   const result = await getVillagesFn({
-    district: district || undefined,              // e.g. "Chamoli"
+    district: district || undefined,              // e.g. "Majuli"
     priority_category: priorityCategory || undefined // e.g. "Immediate" | "Short-term" | "Medium-term" | "Monitor"
   });
 

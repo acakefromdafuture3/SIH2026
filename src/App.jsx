@@ -13,7 +13,7 @@ export default function App() {
   const [villages, setVillages] = useState([]);
   const [sites, setSites] = useState([]);
   const [selectedVillageId, setSelectedVillageId] = useState(null);
-  const [selectedDistrict, setSelectedDistrict] = useState("Chamoli");
+  const [selectedDistrict, setSelectedDistrict] = useState("Majuli");
   const [selectedCategory, setSelectedCategory] = useState("All");
   
   const [siteMatches, setSiteMatches] = useState([]);

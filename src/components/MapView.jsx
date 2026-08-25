@@ -125,8 +125,8 @@ export default function MapView({
   const [showLandslideHeatmap, setShowLandslideHeatmap] = useState(true);
   const [showRainfallContours, setShowRainfallContours] = useState(true);
 
-  // Default center initialized at [30.38, 79.35] (Chamoli Himalayas)
-  const defaultCenter = [30.38, 79.35];
+  // Default center initialized at [26.95, 94.20] (Majuli Island, Assam)
+  const defaultCenter = [26.95, 94.20];
   const mapCenter = selectedVillage
     ? [selectedVillage.lat, selectedVillage.lng]
     : defaultCenter;
@@ -154,45 +154,45 @@ export default function MapView({
     }
   };
 
-  // Pre-computed Rainfall Isohyet Contours across Chamoli Himalayan elevation grades
+  // Pre-computed Rainfall & Brahmaputra River Surge Contours across Majuli Island
   const rainfallContours = [
     {
-      id: "contour-220mm",
-      label: "220mm Monsoon Isohyet (Extreme Saturation)",
-      color: "#2563EB",
+      id: "contour-300mm",
+      label: "Brahmaputra Southern Inundation Front (Severe Flood)",
+      color: "#1D4ED8",
       weight: 2.5,
       dashArray: "4, 6",
       positions: [
-        [30.60, 79.45],
-        [30.56, 79.54],
-        [30.53, 79.62],
-        [30.48, 79.72]
+        [26.86, 94.15],
+        [26.88, 94.25],
+        [26.89, 94.32],
+        [26.91, 94.40]
       ]
     },
     {
-      id: "contour-160mm",
-      label: "160mm Monsoon Isohyet (Heavy Runoff)",
-      color: "#38BDF8",
+      id: "contour-200mm",
+      label: "Subansiri Northern Overflow Channel (Moderate Risk)",
+      color: "#0284C7",
       weight: 2,
       dashArray: "3, 5",
       positions: [
-        [30.48, 79.25],
-        [30.42, 79.36],
-        [30.36, 79.46],
-        [30.28, 79.58]
+        [27.08, 94.18],
+        [27.05, 94.26],
+        [27.03, 94.34],
+        [27.00, 94.42]
       ]
     },
     {
-      id: "contour-100mm",
-      label: "100mm Monsoon Isohyet (Moderate Threshold)",
-      color: "#93C5FD",
+      id: "contour-120mm",
+      label: "Central Majuli Inland Waterlogging Boundary",
+      color: "#38BDF8",
       weight: 1.5,
       dashArray: "2, 4",
       positions: [
-        [30.32, 79.12],
-        [30.24, 79.22],
-        [30.14, 79.35],
-        [30.04, 79.48]
+        [26.98, 94.12],
+        [26.96, 94.22],
+        [26.95, 94.30],
+        [26.93, 94.38]
       ]
     }
   ];
@@ -357,27 +357,27 @@ export default function MapView({
             </Polyline>
           ))}
 
-        {/* 2. Landslide Risk Heatmap Buffers Overlay */}
+        {/* 2. Flood & Riverbank Erosion Risk Heatmap Buffers Overlay */}
         {showLandslideHeatmap &&
           villages.map((village) => {
             if (!village.lat || !village.lng) return null;
             const hazardScore = village.hazard_score || 50;
 
             let color = "#10B981";
-            let radius = 1800;
+            let radius = 400;
             let fillOpacity = 0.12;
 
             if (hazardScore >= 80 || village.priority_category === "Immediate") {
               color = "#EF4444";
-              radius = 3600;
+              radius = 1200;
               fillOpacity = 0.22;
             } else if (hazardScore >= 60 || village.priority_category === "Short-term") {
               color = "#F97316";
-              radius = 2800;
+              radius = 900;
               fillOpacity = 0.18;
             } else if (hazardScore >= 40 || village.priority_category === "Medium-term") {
               color = "#EAB308";
-              radius = 2100;
+              radius = 650;
               fillOpacity = 0.14;
             }
 
@@ -497,8 +497,8 @@ export default function MapView({
                   className="custom-distance-tooltip"
                 >
                   <div className="flex items-center gap-1.5 font-mono text-xs font-bold text-cyan-300 whitespace-nowrap drop-shadow">
-                    <span>📍 {topMatch.distance_km} km</span>
-                    <span className="text-emerald-400 font-semibold">({topMatch.suitability_score}% Match)</span>
+                    <span>📍 {typeof topMatch.distance_km === 'number' ? topMatch.distance_km.toFixed(1) : topMatch.distance_km} km</span>
+                    <span className="text-emerald-400 font-semibold">({typeof topMatch.suitability_score === 'number' ? topMatch.suitability_score.toFixed(1) : topMatch.suitability_score}% Match)</span>
                   </div>
                 </Tooltip>
               </Polyline>
