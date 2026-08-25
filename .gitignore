@@ -12,6 +12,12 @@ ui-debug.log
 # Emulator data export
 emulator-data/
 
+# Build outputs & env
+dist/
+.env
+.env.*
+!.env.example
+
 # OS & IDE
 .DS_Store
 Thumbs.db

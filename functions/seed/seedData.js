@@ -1,244 +1,268 @@
-// MOCK DATA FOR DEMO PURPOSES ONLY — not real hazard assessments of actual locations.
-
 /**
- * Firestore Data Seeding Script & Utility
- * Populates Firestore (local emulator by default, live if --live flag is passed)
- * with mock demo data for Chamoli district, Uttarakhand.
+ * Seed Data for Firestore — Majuli District, Assam (SIH2026)
+ *
+ * Populates:
+ *   1. villages (8 documents) — Majuli, Assam: 2 Immediate, 2 Short-term, 2 Medium-term, 2 Monitor
+ *   2. relocation_sites (3 documents) — High-plinth flood resettlement centers
+ *   3. config/weights (1 document) — Singleton scoring weights
+ *
+ * Usage:
+ *   Local emulator: node seed/seedData.js
+ *   Live Firestore: node seed/seedData.js --live
  */
+
+"use strict";
 
 const admin = require("firebase-admin");
 
-// 1. Mock Villages (8 documents across the 4 risk spectrum tiers)
+// 1. Mock Villages (8 documents — Majuli, Assam)
 const villagesData = [
-  // --- Immediate Risk (2 villages) ---
+  // ── IMMEDIATE RISK (Score >= 71) ───────────────────────────────────────────
   {
-    id: "mock-village-chamoli-01",
-    name: "Mock Joshigarh Upper",
-    district: "Chamoli",
-    state: "Uttarakhand",
-    lat: 30.5562,
-    lng: 79.5638,
-    population: 2450,
-    elderly_pct: 24.5,
+    id: "mock-village-majuli-01",
+    name: "Mock Salmora Riverfront",
+    district: "Majuli",
+    state: "Assam",
+    lat: 26.8720,
+    lng: 94.3120,
+    population: 2350,
+    elderly_pct: 22.0,
     road_access: "poor",
-    hazard_score: 92,
+    hazard_score: 93,
     hazard_factors: {
-      slope: 88,
-      rainfall: 94,
-      landslide_history: 95,
-      elevation: 85,
+      slope: 82,
+      rainfall: 95,
+      landslide_history: 96, // Riverbank erosion & breach frequency
+      elevation: 90,        // Low elevation waterlogging risk
     },
-    exposure_score: 89,
-    vulnerability_score: 91,
+    exposure_score: 90,
+    vulnerability_score: 92,
     history_score: 95,
     priority_score: null,
     priority_category: null,
   },
   {
-    id: "mock-village-chamoli-02",
-    name: "Mock Helang Valley",
-    district: "Chamoli",
-    state: "Uttarakhand",
-    lat: 30.5284,
-    lng: 79.5126,
-    population: 1820,
-    elderly_pct: 21.0,
+    id: "mock-village-majuli-02",
+    name: "Mock Kamalabari Lowland",
+    district: "Majuli",
+    state: "Assam",
+    lat: 26.9150,
+    lng: 94.1680,
+    population: 1950,
+    elderly_pct: 19.5,
     road_access: "poor",
-    hazard_score: 87,
+    hazard_score: 88,
     hazard_factors: {
-      slope: 85,
-      rainfall: 89,
-      landslide_history: 90,
-      elevation: 82,
+      slope: 80,
+      rainfall: 91,
+      landslide_history: 92,
+      elevation: 86,
     },
-    exposure_score: 84,
-    vulnerability_score: 86,
-    history_score: 88,
+    exposure_score: 85,
+    vulnerability_score: 87,
+    history_score: 89,
     priority_score: null,
     priority_category: null,
   },
 
-  // --- Short-term Risk (2 villages) ---
+  // ── SHORT-TERM RISK (Score 51–70) ──────────────────────────────────────────
   {
-    id: "mock-village-chamoli-03",
-    name: "Mock Birahi Ridge",
-    district: "Chamoli",
-    state: "Uttarakhand",
-    lat: 30.4321,
-    lng: 79.4182,
-    population: 1400,
-    elderly_pct: 18.2,
+    id: "mock-village-majuli-03",
+    name: "Mock Garmur Wetland Border",
+    district: "Majuli",
+    state: "Assam",
+    lat: 27.0120,
+    lng: 94.2380,
+    population: 1600,
+    elderly_pct: 16.0,
     road_access: "moderate",
     hazard_score: 72,
     hazard_factors: {
-      slope: 74,
-      rainfall: 70,
-      landslide_history: 75,
-      elevation: 68,
+      slope: 72,
+      rainfall: 74,
+      landslide_history: 76,
+      elevation: 70,
     },
-    exposure_score: 68,
-    vulnerability_score: 74,
-    history_score: 70,
+    exposure_score: 69,
+    vulnerability_score: 73,
+    history_score: 71,
     priority_score: null,
     priority_category: null,
   },
   {
-    id: "mock-village-chamoli-04",
-    name: "Mock Pipalkoti Slope",
-    district: "Chamoli",
-    state: "Uttarakhand",
-    lat: 30.4290,
-    lng: 79.3325,
-    population: 2100,
-    elderly_pct: 16.5,
+    id: "mock-village-majuli-04",
+    name: "Mock Bongaon Embankment Flank",
+    district: "Majuli",
+    state: "Assam",
+    lat: 26.9850,
+    lng: 94.3450,
+    population: 2150,
+    elderly_pct: 15.0,
     road_access: "moderate",
-    hazard_score: 68,
+    hazard_score: 67,
     hazard_factors: {
-      slope: 70,
-      rainfall: 66,
-      landslide_history: 72,
-      elevation: 65,
+      slope: 68,
+      rainfall: 67,
+      landslide_history: 70,
+      elevation: 64,
     },
-    exposure_score: 71,
-    vulnerability_score: 67,
-    history_score: 65,
+    exposure_score: 72,
+    vulnerability_score: 66,
+    history_score: 64,
     priority_score: null,
     priority_category: null,
   },
 
-  // --- Medium-term Risk (2 villages) ---
+  // ── MEDIUM-TERM RISK (Score 31–50) ─────────────────────────────────────────
   {
-    id: "mock-village-chamoli-05",
-    name: "Mock Nandaprayag East",
-    district: "Chamoli",
-    state: "Uttarakhand",
-    lat: 30.3312,
-    lng: 79.3245,
-    population: 980,
-    elderly_pct: 12.0,
+    id: "mock-village-majuli-05",
+    name: "Mock Jengraimukh Basin",
+    district: "Majuli",
+    state: "Assam",
+    lat: 27.0850,
+    lng: 94.3720,
+    population: 1100,
+    elderly_pct: 11.5,
     road_access: "moderate",
-    hazard_score: 48,
+    hazard_score: 49,
     hazard_factors: {
       slope: 50,
-      rainfall: 45,
-      landslide_history: 48,
+      rainfall: 48,
+      landslide_history: 47,
       elevation: 49,
     },
-    exposure_score: 52,
-    vulnerability_score: 46,
-    history_score: 44,
+    exposure_score: 51,
+    vulnerability_score: 47,
+    history_score: 45,
     priority_score: null,
     priority_category: null,
   },
   {
-    id: "mock-village-chamoli-06",
-    name: "Mock Gopeshwar Heights",
-    district: "Chamoli",
-    state: "Uttarakhand",
-    lat: 30.4124,
-    lng: 79.3512,
-    population: 1650,
-    elderly_pct: 11.5,
+    id: "mock-village-majuli-06",
+    name: "Mock Rawanapar Terrace",
+    district: "Majuli",
+    state: "Assam",
+    lat: 26.9640,
+    lng: 94.2210,
+    population: 1500,
+    elderly_pct: 10.5,
     road_access: "good",
-    hazard_score: 42,
+    hazard_score: 41,
     hazard_factors: {
-      slope: 44,
-      rainfall: 40,
-      landslide_history: 41,
+      slope: 42,
+      rainfall: 41,
+      landslide_history: 40,
       elevation: 43,
     },
-    exposure_score: 45,
-    vulnerability_score: 40,
-    history_score: 42,
+    exposure_score: 44,
+    vulnerability_score: 39,
+    history_score: 41,
     priority_score: null,
     priority_category: null,
   },
 
-  // --- Monitor (2 villages) ---
+  // ── MONITOR (Score < 31) ───────────────────────────────────────────────────
   {
-    id: "mock-village-chamoli-07",
-    name: "Mock Karnaprayag West",
-    district: "Chamoli",
-    state: "Uttarakhand",
-    lat: 30.2598,
-    lng: 79.2184,
-    population: 820,
-    elderly_pct: 8.5,
+    id: "mock-village-majuli-07",
+    name: "Mock Ahotguri Inland Plain",
+    district: "Majuli",
+    state: "Assam",
+    lat: 26.9320,
+    lng: 94.0750,
+    population: 890,
+    elderly_pct: 8.0,
     road_access: "good",
-    hazard_score: 25,
+    hazard_score: 24,
     hazard_factors: {
-      slope: 22,
-      rainfall: 28,
-      landslide_history: 20,
-      elevation: 30,
+      slope: 25,
+      rainfall: 27,
+      landslide_history: 22,
+      elevation: 28,
     },
-    exposure_score: 26,
-    vulnerability_score: 24,
-    history_score: 22,
+    exposure_score: 25,
+    vulnerability_score: 23,
+    history_score: 21,
     priority_score: null,
     priority_category: null,
   },
   {
-    id: "mock-village-chamoli-08",
-    name: "Mock Tharali Basin",
-    district: "Chamoli",
-    state: "Uttarakhand",
-    lat: 30.0654,
-    lng: 79.5021,
-    population: 540,
-    elderly_pct: 7.0,
+    id: "mock-village-majuli-08",
+    name: "Mock Dakhinpat Ridge",
+    district: "Majuli",
+    state: "Assam",
+    lat: 26.8910,
+    lng: 94.2620,
+    population: 620,
+    elderly_pct: 6.5,
     road_access: "good",
-    hazard_score: 18,
+    hazard_score: 17,
     hazard_factors: {
-      slope: 15,
-      rainfall: 20,
-      landslide_history: 18,
-      elevation: 19,
+      slope: 16,
+      rainfall: 19,
+      landslide_history: 17,
+      elevation: 18,
     },
-    exposure_score: 20,
-    vulnerability_score: 17,
-    history_score: 15,
+    exposure_score: 19,
+    vulnerability_score: 16,
+    history_score: 14,
     priority_score: null,
     priority_category: null,
   },
 ];
 
-// 2. Mock Relocation Sites (3 documents)
+// 2. Mock Relocation Sites (4 documents — Distributed Highland Flood Resettlement Centers)
 const relocationSitesData = [
   {
-    id: "mock-site-chamoli-01",
-    name: "Gopeshwar Safe Plateau Resettlement Zone",
-    district: "Chamoli",
-    lat: 30.4050,
-    lng: 79.3280,
-    hazard_risk_score: 18,
-    estimated_capacity: 3500,
+    id: "mock-site-majuli-01",
+    name: "Jengraimukh Safe Highland Resettlement Campus",
+    district: "Majuli",
+    state: "Assam",
+    lat: 27.1200,
+    lng: 94.4100,
+    hazard_risk_score: 12,
+    estimated_capacity: 3800,
     water_availability: "high",
     road_access: "good",
     healthcare_available: true,
     schools_available: true,
   },
   {
-    id: "mock-site-chamoli-02",
-    name: "Karnaprayag Southern Terrace Site",
-    district: "Chamoli",
-    lat: 30.2510,
-    lng: 79.2310,
-    hazard_risk_score: 22,
-    estimated_capacity: 2800,
-    water_availability: "good",
+    id: "mock-site-majuli-02",
+    name: "Rawanapar Elevated Relief Campus",
+    district: "Majuli",
+    state: "Assam",
+    lat: 26.9680,
+    lng: 94.2250,
+    hazard_risk_score: 14,
+    estimated_capacity: 4000,
+    water_availability: "high",
     road_access: "good",
     healthcare_available: true,
     schools_available: true,
   },
   {
-    id: "mock-site-chamoli-03",
-    name: "Gauchar Low-Hazard Valley Extension",
-    district: "Chamoli",
-    lat: 30.2880,
-    lng: 79.1550,
+    id: "mock-site-majuli-03",
+    name: "Kamalabari Safe Corridor Terminal",
+    district: "Majuli",
+    state: "Assam",
+    lat: 26.8850,
+    lng: 94.1350,
     hazard_risk_score: 14,
-    estimated_capacity: 4000,
+    estimated_capacity: 3600,
+    water_availability: "high",
+    road_access: "good",
+    healthcare_available: true,
+    schools_available: true,
+  },
+  {
+    id: "mock-site-majuli-04",
+    name: "Dakhinpat Highland Resettlement Center",
+    district: "Majuli",
+    state: "Assam",
+    lat: 26.8750,
+    lng: 94.2550,
+    hazard_risk_score: 12,
+    estimated_capacity: 3800,
     water_availability: "high",
     road_access: "good",
     healthcare_available: true,
@@ -255,23 +279,48 @@ const weightsConfigData = {
     history: 0.20,
   },
   site_ranking: {
-    safety: 0.40,
+    safety: 0.35,
     capacity: 0.20,
     infrastructure: 0.15,
     accessibility: 0.10,
     water: 0.10,
-    distance: 0.05,
+    distance: 0.10,
   },
 };
 
 /**
- * Seeds initial mock data into Firestore.
+ * Seeds initial mock data into Firestore and cleans up obsolete documents.
  * @param {FirebaseFirestore.Firestore} db - Firestore instance
  * @returns {Promise<{villagesCount: number, relocationSitesCount: number, configSeeded: boolean}>}
  */
 async function seedFirestore(db) {
   if (!db) {
     throw new Error("Firestore database instance must be provided.");
+  }
+
+  // 0. Clean up obsolete documents
+  const validVillageIds = new Set(villagesData.map(v => v.id));
+  const validSiteIds = new Set(relocationSitesData.map(s => s.id));
+
+  const existingVillages = await db.collection("villages").get();
+  for (const doc of existingVillages.docs) {
+    if (!validVillageIds.has(doc.id)) {
+      await doc.ref.delete();
+    }
+  }
+
+  const existingSites = await db.collection("relocation_sites").get();
+  for (const doc of existingSites.docs) {
+    if (!validSiteIds.has(doc.id)) {
+      await doc.ref.delete();
+    }
+  }
+
+  const existingMatches = await db.collection("village_site_matches").get();
+  for (const doc of existingMatches.docs) {
+    if (!validVillageIds.has(doc.id)) {
+      await doc.ref.delete();
+    }
   }
 
   const batch = db.batch();
@@ -322,7 +371,7 @@ if (require.main === module) {
 
     seedFirestore(db)
       .then((result) => {
-        console.log("[Seed] Firestore seeded successfully with Chamoli mock data:");
+        console.log("[Seed] Firestore seeded successfully with Majuli, Assam mock data:");
         console.log(`  - Villages seeded: ${result.villagesCount}`);
         console.log(`  - Relocation sites seeded: ${result.relocationSitesCount}`);
         console.log(`  - Config weights seeded: ${result.configSeeded}`);
@@ -344,7 +393,7 @@ if (require.main === module) {
         return res.json();
       })
       .then((result) => {
-        console.log("[Seed] Live Firestore seeded successfully with Chamoli mock data:");
+        console.log("[Seed] Live Firestore seeded successfully with Majuli, Assam mock data:");
         console.log(`  - Villages seeded: ${result.villagesCount}`);
         console.log(`  - Relocation sites seeded: ${result.relocationSitesCount}`);
         console.log(`  - Config weights seeded: ${result.configSeeded}`);
