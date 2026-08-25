@@ -23,13 +23,14 @@ import { getFirestore } from "firebase/firestore";
 import { getFunctions, httpsCallable } from "firebase/functions";
 
 // Live Firebase Web configuration for SIH2026
+// (Use environment variables in your frontend repo, e.g. Vite or Next.js / CRA)
 const firebaseConfig = {
-  apiKey: "AIzaSyDFjququvz4BVYq9PS6e5sWkpv5oY58Yhw",
-  authDomain: "sih2026-4b480.firebaseapp.com",
-  projectId: "sih2026-4b480",
-  storageBucket: "sih2026-4b480.firebasestorage.app",
-  messagingSenderId: "896652024753",
-  appId: "1:896652024753:web:61062c4540f1b918b2bb90"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || process.env.REACT_APP_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "sih2026-4b480.firebaseapp.com",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "sih2026-4b480",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "sih2026-4b480.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "896652024753",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:896652024753:web:61062c4540f1b918b2bb90"
 };
 
 // Initialize Firebase App
