@@ -92,13 +92,13 @@ function computeSuitability(site, village, distance_km, weights) {
     distance:      w_distance      = 0.05,
   } = weights;
 
-  // Individual criteria scores (0–100)
-  const safety         = Math.min(100, Math.max(0, 100 - hazard_risk_score));
-  const capacity       = computeCapacityScore(estimated_capacity, population);
-  const infrastructure = computeInfraScore(water_availability, healthcare_available, schools_available);
-  const accessibility  = roadAccessScore(road_access);
-  const water          = waterAvailabilityScore(water_availability);
-  const distance       = Math.max(0, 100 - distance_km * 5);
+  // Individual criteria scores (0–100) rounded to 1 decimal place
+  const safety         = Math.round(Math.min(100, Math.max(0, 100 - hazard_risk_score)) * 10) / 10;
+  const capacity       = Math.round(computeCapacityScore(estimated_capacity, population) * 10) / 10;
+  const infrastructure = Math.round(computeInfraScore(water_availability, healthcare_available, schools_available) * 10) / 10;
+  const accessibility  = Math.round(roadAccessScore(road_access) * 10) / 10;
+  const water          = Math.round(waterAvailabilityScore(water_availability) * 10) / 10;
+  const distance       = Math.round(Math.max(0, 100 - distance_km * 5) * 10) / 10;
 
   const criteria_breakdown = {
     safety:         { score: safety,         weight: w_safety,        weighted: Math.round(safety        * w_safety        * 100) / 100 },
