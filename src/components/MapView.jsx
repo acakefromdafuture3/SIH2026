@@ -1,0 +1,510 @@
+import React, { useEffect, useState } from "react";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Popup,
+  Polyline,
+  Tooltip,
+  Circle,
+  CircleMarker,
+  useMap
+} from "react-leaflet";
+import L from "leaflet";
+import { Layers, ShieldCheck, AlertCircle, Compass, Maximize2, Flame, CloudRain } from "lucide-react";
+import { PRIORITY_STYLES } from "./VillageList";
+import MapPins from "./MapPins";
+
+// Fix default leaflet marker asset missing bug
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+});
+
+// Helper component to center and animate map to selected coordinates
+function MapController({ center, zoom }) {
+  const map = useMap();
+  useEffect(() => {
+    if (center && center[0] && center[1]) {
+      map.flyTo(center, zoom, {
+        duration: 1.2,
+        easeLinearity: 0.25
+      });
+    }
+  }, [center, zoom, map]);
+  return null;
+}
+
+// Generate custom SVG icon for villages
+function createVillageIcon(priorityCategory, isSelected, score) {
+  const colorMap = {
+    Immediate: "#EF4444",
+    "Short-term": "#F97316",
+    "Medium-term": "#EAB308",
+    Monitor: "#10B981"
+  };
+  const color = colorMap[priorityCategory] || "#10B981";
+  const size = isSelected ? 42 : 32;
+
+  const html = `
+    <div class="relative flex items-center justify-center cursor-pointer transform -translate-x-1/2 -translate-y-1/2 transition-transform duration-200 hover:scale-110">
+      ${
+        isSelected || priorityCategory === "Immediate"
+          ? `<div class="absolute w-12 h-12 rounded-full pulse-immediate opacity-75" style="background-color: ${color}40;"></div>`
+          : ""
+      }
+      <div 
+        class="flex items-center justify-center rounded-full border-2 shadow-2xl font-mono text-[11px] font-black tracking-tight"
+        style="
+          width: ${size}px; 
+          height: ${size}px; 
+          background-color: ${isSelected ? '#ffffff' : color}; 
+          color: ${isSelected ? color : '#ffffff'};
+          border-color: ${isSelected ? color : '#ffffff'};
+          box-shadow: 0 0 15px ${color}80;
+        "
+      >
+        ${Math.round(score)}
+      </div>
+      <div 
+        class="absolute -bottom-1 w-2 h-2 rotate-45"
+        style="background-color: ${isSelected ? '#ffffff' : color};"
+      ></div>
+    </div>
+  `;
+
+  return L.divIcon({
+    className: "custom-village-marker",
+    html,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2]
+  });
+}
+
+// Generate custom Blue Shield Icon for Resettlement Candidate Sites
+function createBlueShieldIcon(isTopMatch) {
+  const size = isTopMatch ? 40 : 32;
+  const html = `
+    <div class="relative flex items-center justify-center cursor-pointer transform -translate-x-1/2 -translate-y-1/2 transition-transform duration-200 hover:scale-110">
+      ${
+        isTopMatch
+          ? `<div class="absolute w-12 h-12 rounded-full pulse-immediate opacity-80" style="background-color: #2563eb50;"></div>`
+          : ""
+      }
+      <div 
+        class="flex items-center justify-center rounded-xl bg-blue-600 border-2 ${isTopMatch ? 'border-cyan-300 ring-2 ring-cyan-400/60 shadow-cyan-500/50' : 'border-blue-200 shadow-blue-500/40'} text-white shadow-xl"
+        style="width: ${size}px; height: ${size}px;"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="${isTopMatch ? 20 : 16}" height="${isTopMatch ? 20 : 16}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
+        </svg>
+      </div>
+    </div>
+  `;
+
+  return L.divIcon({
+    className: "custom-blue-shield-marker",
+    html,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2]
+  });
+}
+
+export default function MapView({
+  villages,
+  sites,
+  selectedVillage,
+  onSelectVillage,
+  siteMatches = []
+}) {
+  const [mapStyle, setMapStyle] = useState("voyager"); // "voyager" | "positron" | "dark" | "satellite" | "osm"
+  const [showSites, setShowSites] = useState(true);
+  const [showConnections, setShowConnections] = useState(true);
+  const [showLandslideHeatmap, setShowLandslideHeatmap] = useState(true);
+  const [showRainfallContours, setShowRainfallContours] = useState(true);
+
+  // Default center initialized at [30.38, 79.35] (Chamoli Himalayas)
+  const defaultCenter = [30.38, 79.35];
+  const mapCenter = selectedVillage
+    ? [selectedVillage.lat, selectedVillage.lng]
+    : defaultCenter;
+
+  const tileLayers = {
+    voyager: {
+      url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+      attribution: '&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    },
+    positron: {
+      url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+      attribution: '&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    },
+    dark: {
+      url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+      attribution: '&copy; <a href="https://carto.com/">CARTO</a>'
+    },
+    satellite: {
+      url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      attribution: '&copy; Esri &mdash; Earthstar Geographics'
+    },
+    osm: {
+      url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }
+  };
+
+  // Pre-computed Rainfall Isohyet Contours across Chamoli Himalayan elevation grades
+  const rainfallContours = [
+    {
+      id: "contour-220mm",
+      label: "220mm Monsoon Isohyet (Extreme Saturation)",
+      color: "#2563EB",
+      weight: 2.5,
+      dashArray: "4, 6",
+      positions: [
+        [30.60, 79.45],
+        [30.56, 79.54],
+        [30.53, 79.62],
+        [30.48, 79.72]
+      ]
+    },
+    {
+      id: "contour-160mm",
+      label: "160mm Monsoon Isohyet (Heavy Runoff)",
+      color: "#38BDF8",
+      weight: 2,
+      dashArray: "3, 5",
+      positions: [
+        [30.48, 79.25],
+        [30.42, 79.36],
+        [30.36, 79.46],
+        [30.28, 79.58]
+      ]
+    },
+    {
+      id: "contour-100mm",
+      label: "100mm Monsoon Isohyet (Moderate Threshold)",
+      color: "#93C5FD",
+      weight: 1.5,
+      dashArray: "2, 4",
+      positions: [
+        [30.32, 79.12],
+        [30.24, 79.22],
+        [30.14, 79.35],
+        [30.04, 79.48]
+      ]
+    }
+  ];
+
+  return (
+    <div className="relative w-full h-full rounded-xl overflow-hidden border border-slate-800 shadow-xl bg-slate-950">
+      
+      {/* Map Controls Header Overlay with Layer Switcher */}
+      <div className="absolute top-3 left-3 z-[1000] flex flex-wrap items-center gap-2 pointer-events-auto bg-slate-900/90 backdrop-blur-md px-3 py-2 rounded-xl border border-slate-800 shadow-md">
+        
+        {/* Layer style selector */}
+        <div className="flex items-center gap-1.5 text-xs text-slate-300">
+          <Layers className="w-3.5 h-3.5 text-rose-400" />
+          <span className="text-slate-500">Basemap:</span>
+          <select
+            value={mapStyle}
+            onChange={(e) => setMapStyle(e.target.value)}
+            aria-label="Map Basemap Style"
+            className="bg-slate-950 border border-slate-800 rounded px-2 py-0.5 text-xs text-slate-200 outline-none cursor-pointer"
+          >
+            <option value="voyager">CartoDB Voyager (Topography)</option>
+            <option value="positron">CartoDB Positron (Light)</option>
+            <option value="dark">CartoDB Dark Matter</option>
+            <option value="satellite">Satellite Imagery</option>
+            <option value="osm">Street Map (OSM)</option>
+          </select>
+        </div>
+
+        <div className="h-4 w-px bg-slate-700 mx-1"></div>
+
+        {/* Toggle Landslide Risk Heatmap */}
+        <label className="flex items-center gap-1 text-xs text-slate-300 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={showLandslideHeatmap}
+            onChange={(e) => setShowLandslideHeatmap(e.target.checked)}
+            className="rounded bg-slate-950 border-slate-700 text-rose-500 focus:ring-0 w-3.5 h-3.5"
+          />
+          <span className="flex items-center gap-1 text-rose-400 font-medium">
+            <Flame className="w-3.5 h-3.5" /> Landslide Heatmap
+          </span>
+        </label>
+
+        {/* Toggle Rainfall Contours */}
+        <label className="flex items-center gap-1 text-xs text-slate-300 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={showRainfallContours}
+            onChange={(e) => setShowRainfallContours(e.target.checked)}
+            className="rounded bg-slate-950 border-slate-700 text-blue-500 focus:ring-0 w-3.5 h-3.5"
+          />
+          <span className="flex items-center gap-1 text-sky-400 font-medium">
+            <CloudRain className="w-3.5 h-3.5" /> Rainfall Contours
+          </span>
+        </label>
+
+        {/* Toggle Resettlement Sites */}
+        <label className="flex items-center gap-1 text-xs text-slate-300 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={showSites}
+            onChange={(e) => setShowSites(e.target.checked)}
+            className="rounded bg-slate-950 border-slate-700 text-blue-500 focus:ring-0 w-3.5 h-3.5"
+          />
+          <span className="flex items-center gap-1 text-blue-400 font-medium">
+            <ShieldCheck className="w-3.5 h-3.5" /> Safe Sites ({sites.length})
+          </span>
+        </label>
+
+        {/* Toggle Distance Vectors */}
+        {selectedVillage && (
+          <label className="flex items-center gap-1 text-xs text-slate-300 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={showConnections}
+              onChange={(e) => setShowConnections(e.target.checked)}
+              className="rounded bg-slate-950 border-slate-700 text-cyan-500 focus:ring-0 w-3.5 h-3.5"
+            />
+            <span className="text-cyan-300 font-medium">Relocation Vector</span>
+          </label>
+        )}
+      </div>
+
+      {/* Map Legend Overlay */}
+      <div className="absolute bottom-4 left-3 z-[1000] bg-slate-900/90 backdrop-blur-md px-3.5 py-2.5 rounded-xl border border-slate-800 text-xs shadow-lg space-y-1.5">
+        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+          GIS Layers & Priority
+        </span>
+        <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px]">
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-sm shadow-red-500/50"></span>
+            <span className="text-slate-200">Immediate (≥71)</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-orange-500 shadow-sm shadow-orange-500/50"></span>
+            <span className="text-slate-200">Short-term (≥51)</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-yellow-500 shadow-sm shadow-yellow-500/50"></span>
+            <span className="text-slate-200">Medium (≥31)</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50"></span>
+            <span className="text-slate-200">Monitor (&lt;31)</span>
+          </div>
+        </div>
+        <div className="pt-1.5 border-t border-slate-800/80 flex flex-col gap-1 text-[11px]">
+          <div className="flex items-center gap-1.5 text-blue-400">
+            <span className="w-2.5 h-2.5 rounded-md bg-blue-600 border border-blue-300"></span>
+            <span>Safe Resettlement Zone</span>
+          </div>
+          {showRainfallContours && (
+            <div className="flex items-center gap-1.5 text-sky-400">
+              <span className="w-3 h-0.5 border-t-2 border-dashed border-sky-400"></span>
+              <span>Monsoon Isohyet Contours</span>
+            </div>
+          )}
+          {showLandslideHeatmap && (
+            <div className="flex items-center gap-1.5 text-rose-400">
+              <span className="w-2.5 h-2.5 rounded-full bg-rose-500/40 border border-rose-500"></span>
+              <span>Landslide Risk Heat Buffer</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Leaflet Map */}
+      <MapContainer
+        center={defaultCenter}
+        zoom={10}
+        scrollWheelZoom={true}
+        className="w-full h-full"
+      >
+        <TileLayer
+          url={tileLayers[mapStyle].url}
+          attribution={tileLayers[mapStyle].attribution}
+        />
+
+        <MapController
+          center={selectedVillage ? [selectedVillage.lat, selectedVillage.lng] : defaultCenter}
+          zoom={selectedVillage ? 11 : 10}
+        />
+
+        {/* 1. Monsoon Rainfall Isohyet Contours Overlay */}
+        {showRainfallContours &&
+          rainfallContours.map((contour) => (
+            <Polyline
+              key={contour.id}
+              positions={contour.positions}
+              pathOptions={{
+                color: contour.color,
+                weight: contour.weight,
+                dashArray: contour.dashArray,
+                opacity: 0.85
+              }}
+            >
+              <Tooltip direction="top" className="custom-distance-tooltip">
+                <span className="font-semibold text-[11px] text-sky-200">
+                  🌧️ {contour.label}
+                </span>
+              </Tooltip>
+            </Polyline>
+          ))}
+
+        {/* 2. Landslide Risk Heatmap Buffers Overlay */}
+        {showLandslideHeatmap &&
+          villages.map((village) => {
+            if (!village.lat || !village.lng) return null;
+            const hazardScore = village.hazard_score || 50;
+
+            let color = "#10B981";
+            let radius = 1800;
+            let fillOpacity = 0.12;
+
+            if (hazardScore >= 80 || village.priority_category === "Immediate") {
+              color = "#EF4444";
+              radius = 3600;
+              fillOpacity = 0.22;
+            } else if (hazardScore >= 60 || village.priority_category === "Short-term") {
+              color = "#F97316";
+              radius = 2800;
+              fillOpacity = 0.18;
+            } else if (hazardScore >= 40 || village.priority_category === "Medium-term") {
+              color = "#EAB308";
+              radius = 2100;
+              fillOpacity = 0.14;
+            }
+
+            return (
+              <Circle
+                key={`heat-${village.id}`}
+                center={[village.lat, village.lng]}
+                radius={radius}
+                pathOptions={{
+                  color: color,
+                  fillColor: color,
+                  fillOpacity: fillOpacity,
+                  weight: 1,
+                  dashArray: "3, 6",
+                  opacity: 0.45
+                }}
+              />
+            );
+          })}
+
+        {/* Render Village Circular SVG Markers with Priority Color Coding & Pulse */}
+        <MapPins
+          villages={villages}
+          selectedVillageId={selectedVillage?.id}
+          onSelectVillage={onSelectVillage}
+        />
+
+        {/* Render Candidate Relocation Sites with Blue Shield Markers */}
+        {showSites &&
+          sites.map((site) => {
+            const isTopMatched = siteMatches.length > 0 && siteMatches[0]?.site_id === site.id;
+            const matchInfo = siteMatches.find((m) => m.site_id === site.id);
+
+            return (
+              <Marker
+                key={site.id}
+                position={[site.lat, site.lng]}
+                icon={createBlueShieldIcon(isTopMatched)}
+              >
+                <Popup>
+                  <div className="p-3.5 space-y-2 min-w-[220px]">
+                    <div className="flex items-center justify-between gap-1.5 border-b border-slate-700 pb-1.5 pr-6">
+                      <div className="flex items-center gap-1.5 text-blue-400 font-bold text-xs uppercase">
+                        <ShieldCheck className="w-4 h-4 text-blue-400" /> Resettlement Zone
+                      </div>
+                      {matchInfo && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 font-mono font-bold flex-shrink-0">
+                          {matchInfo.suitability_score}% Match
+                        </span>
+                      )}
+                    </div>
+
+                    <h4 className="font-bold text-sm text-white">{site.name}</h4>
+
+                    <div className="space-y-1 text-xs text-slate-300">
+                      {matchInfo && (
+                        <div className="flex justify-between text-cyan-300 font-medium">
+                          <span>Distance:</span>
+                          <span className="font-mono font-bold">{matchInfo.distance_km} km</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Total Capacity:</span>
+                        <span className="font-semibold text-emerald-400">
+                          {site.capacity.toLocaleString()} persons
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Safety Score:</span>
+                        <span className="font-semibold text-white">{site.safety_score} / 100</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Water Supply:</span>
+                        <span className="text-slate-200 text-right truncate max-w-[120px]">
+                          {site.water_source}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Road Connectivity:</span>
+                        <span className="text-slate-200 text-right truncate max-w-[120px]">
+                          {site.road_connectivity}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </Popup>
+              </Marker>
+            );
+          })}
+
+        {/* Draw Dashed Cyan Polyline from Selected Village to Top-Ranked Candidate Site with Distance Tooltip */}
+        {selectedVillage &&
+          showConnections &&
+          siteMatches.length > 0 &&
+          (() => {
+            const topMatch = siteMatches[0];
+            const topSite = sites.find((s) => s.id === topMatch?.site_id);
+            if (!topSite) return null;
+
+            return (
+              <Polyline
+                key={`top-vector-${selectedVillage.id}-${topSite.id}`}
+                positions={[
+                  [selectedVillage.lat, selectedVillage.lng],
+                  [topSite.lat, topSite.lng]
+                ]}
+                pathOptions={{
+                  color: "#06B6D4",
+                  weight: 3.5,
+                  dashArray: "8, 10",
+                  opacity: 0.95
+                }}
+              >
+                <Tooltip
+                  permanent
+                  direction="center"
+                  className="custom-distance-tooltip"
+                >
+                  <div className="flex items-center gap-1.5 font-mono text-xs font-bold text-cyan-300 whitespace-nowrap drop-shadow">
+                    <span>📍 {topMatch.distance_km} km</span>
+                    <span className="text-emerald-400 font-semibold">({topMatch.suitability_score}% Match)</span>
+                  </div>
+                </Tooltip>
+              </Polyline>
+            );
+          })()}
+      </MapContainer>
+    </div>
+  );
+}
