@@ -1,0 +1,27 @@
+{
+  "name": "functions",
+  "description": "Cloud Functions for Firebase",
+  "scripts": {
+    "serve": "firebase emulators:start --only functions",
+    "shell": "firebase functions:shell",
+    "start": "npm run shell",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log",
+    "seed": "node seed/seedData.js",
+    "seed:live": "node seed/seedData.js --live",
+    "test:scoring": "node seed/testScoring.js",
+    "test:functions": "node seed/testFunctions.js",
+    "test:live": "node seed/smokeTest.js"
+  },
+  "engines": {
+    "node": "20"
+  },
+  "main": "index.js",
+  "type": "commonjs",
+  "dependencies": {
+    "firebase-admin": "^13.1.0",
+    "firebase-functions": "^6.3.1"
+  },
+  "devDependencies": {},
+  "private": true
+}
