@@ -1,0 +1,53 @@
+rules_version = '2';
+
+/**
+ * ⚠️ SECURITY NOTICE:
+ * These Firestore rules are intentionally configured for the internal hackathon / judge-facing demo stage.
+ * Client read access is open to allow seamless evaluation without mandatory authentication.
+ * Direct client write access is disabled across all collections.
+ * All mutations (data seeding, priority calculations, site matching, weights configuration)
+ * occur server-side via Cloud Functions using the Firebase Admin SDK (which bypasses security rules).
+ *
+ * 🔒 IMPORTANT: Before any production or real deployment, these rules MUST be locked down
+ * using Firebase Authentication (e.g., request.auth != null) and role-based access control (RBAC).
+ */
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 1. Villages collection
+    // Public read for demo visualization; direct client writes disabled.
+    match /villages/{villageId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // 2. Relocation Sites collection
+    // Public read for demo map/list views; direct client writes disabled.
+    match /relocation_sites/{siteId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // 3. Village-Site Matches collection
+    // Public read for suitability rankings; direct client writes disabled.
+    // Populated exclusively by the getSiteMatches Cloud Function.
+    match /village_site_matches/{matchId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // 4. Config collection (e.g., config/weights singleton)
+    // Public read for viewing active scoring weights; direct client writes disabled.
+    // Updates must go through updateWeights Cloud Function to trigger recomputation.
+    match /config/{configDoc} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Default fallback: deny any unspecified access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
