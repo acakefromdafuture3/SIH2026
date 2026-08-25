@@ -99,7 +99,7 @@ export default function SiteMatchList({ matches = [], villageName, loading }) {
 
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <div className={`px-2.5 py-1 rounded-lg border text-xs font-mono font-bold ${scoreClass}`}>
-                    {match.suitability_score}%
+                    {typeof match.suitability_score === 'number' ? match.suitability_score.toFixed(1) : match.suitability_score}%
                   </div>
                   <button className="text-slate-400 hover:text-slate-200 p-1">
                     {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -115,34 +115,37 @@ export default function SiteMatchList({ matches = [], villageName, loading }) {
                   <div>
                     <div className="text-[11px] font-semibold text-slate-400 mb-1.5 flex items-center justify-between">
                       <span>Criteria Score Breakdown (Weighted):</span>
-                      <span className="text-[10px] text-slate-500">Weight & Score</span>
+                      <span className="text-[10px] text-slate-500">Score & Points</span>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {Object.entries(breakdown).map(([key, crit]) => {
-                        const labelMap = {
-                          safety: "Safety & Hazard Buffer (40%)",
-                          capacity: "Capacity / Space (20%)",
-                          infrastructure: "Infrastructure (15%)",
-                          accessibility: "Road & Transport (10%)",
-                          water: "Water Supply (10%)",
-                          distance: "Proximity / Distance (5%)"
+                        const labelNames = {
+                          safety: "Safety & Hazard",
+                          capacity: "Capacity / Space",
+                          infrastructure: "Infrastructure",
+                          accessibility: "Road Access",
+                          water: "Water Supply",
+                          distance: "Proximity"
                         };
+                        const weightPct = Math.round((crit.weight || 0) * 100);
+                        const rawScore = typeof crit.score === 'number' ? Math.round(crit.score) : crit.score;
+                        const weightedPts = typeof crit.weighted === 'number' ? crit.weighted.toFixed(1) : crit.weighted;
 
                         return (
                           <div key={key} className="bg-slate-900/80 p-2 rounded-lg border border-slate-800">
-                            <div className="flex justify-between text-[11px] mb-1">
-                              <span className="text-slate-300 font-medium capitalize">
-                                {labelMap[key] || key}
+                            <div className="flex items-center justify-between text-[11px] mb-1 gap-2">
+                              <span className="text-slate-300 font-medium truncate">
+                                {labelNames[key] || key} <span className="text-slate-500 font-normal text-[10px]">({weightPct}%)</span>
                               </span>
-                              <span className="font-mono text-cyan-400 font-bold">
-                                {crit.score}/100 <span className="text-slate-500 font-normal">({crit.weighted}pts)</span>
+                              <span className="font-mono text-cyan-400 font-bold whitespace-nowrap text-right text-[11px]">
+                                {rawScore}/100 <span className="text-slate-400 font-normal">({weightedPts}pts)</span>
                               </span>
                             </div>
                             <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
                               <div
                                 className="bg-gradient-to-r from-cyan-500 to-blue-500 h-full rounded-full transition-all duration-500"
-                                style={{ width: `${Math.min(100, Math.max(0, crit.score))}%` }}
+                                style={{ width: `${Math.min(100, Math.max(0, rawScore))}%` }}
                               />
                             </div>
                           </div>

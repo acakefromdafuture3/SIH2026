@@ -1,4 +1,4 @@
-// Mock & Seeded data for Chamoli District, Uttarakhand (SIH2026)
+// Mock & Seeded data for Majuli District, Assam (SIH2026)
 
 export const DEFAULT_WEIGHTS = {
   priority: {
@@ -8,380 +8,352 @@ export const DEFAULT_WEIGHTS = {
     history: 0.20
   },
   site_ranking: {
-    safety: 0.40,
+    safety: 0.35,
     capacity: 0.20,
     infrastructure: 0.15,
     accessibility: 0.10,
     water: 0.10,
-    distance: 0.05
+    distance: 0.10
   }
 };
 
 export const MOCK_RELOCATION_SITES = [
   {
-    id: "mock-site-chamoli-01",
-    name: "Gopeshwar Safe Plateau Resettlement Zone",
-    district: "Chamoli",
-    state: "Uttarakhand",
-    lat: 30.4215,
-    lng: 79.3398,
-    capacity: 3500,
-    current_occupancy: 450,
-    safety_score: 82,
-    water_source: "Perennial Spring & Municipal Line",
-    road_connectivity: "NH-58 Direct Link (All-weather)",
-    hospital_distance_km: 3.2,
-    school_distance_km: 1.5,
-    hazard_risk_level: "Low",
-    terrain_type: "Gentle Terrace (< 10° slope)",
-    elevation_m: 1450
+    id: "mock-site-majuli-01",
+    name: "Jengraimukh Safe Highland Resettlement Campus",
+    district: "Majuli",
+    state: "Assam",
+    lat: 27.1200,
+    lng: 94.4100,
+    capacity: 3800,
+    current_occupancy: 420,
+    safety_score: 88,
+    water_source: "Deep Tube Wells & Central Treatment Plant",
+    road_connectivity: "Paved District Arterial Highway",
+    hospital_distance_km: 1.8,
+    school_distance_km: 0.8,
+    hazard_risk_level: "Very Low",
+    terrain_type: "Elevated High-Plinth Embankment (>3m above flood datum)",
+    elevation_m: 94
   },
   {
-    id: "mock-site-chamoli-02",
-    name: "Karnaprayag Southern Terrace Site",
-    district: "Chamoli",
-    state: "Uttarakhand",
-    lat: 30.2450,
-    lng: 79.2310,
-    capacity: 2200,
-    current_occupancy: 600,
-    safety_score: 78,
-    water_source: "Alaknanda River Filtration Plant",
-    road_connectivity: "Paved State Highway",
-    hospital_distance_km: 5.8,
-    school_distance_km: 2.1,
-    hazard_risk_level: "Low-Moderate",
-    terrain_type: "Alluvial Flat Ridge",
-    elevation_m: 860
-  },
-  {
-    id: "mock-site-chamoli-03",
-    name: "Gauchar Low-Hazard Valley Extension",
-    district: "Chamoli",
-    state: "Uttarakhand",
-    lat: 30.2872,
-    lng: 79.1543,
-    capacity: 4800,
-    current_occupancy: 950,
+    id: "mock-site-majuli-02",
+    name: "Rawanapar Elevated Relief Campus",
+    district: "Majuli",
+    state: "Assam",
+    lat: 26.9680,
+    lng: 94.2250,
+    capacity: 4000,
+    current_occupancy: 380,
     safety_score: 86,
-    water_source: "Gravity Water Supply & Tube Wells",
-    road_connectivity: "Direct Airstrip & NH Connectivity",
-    hospital_distance_km: 2.0,
+    water_source: "Protected Groundwater Reservoir",
+    road_connectivity: "All-weather Concrete Connector",
+    hospital_distance_km: 2.5,
     school_distance_km: 1.0,
     hazard_risk_level: "Very Low",
-    terrain_type: "Wide Valley Plain",
-    elevation_m: 800
+    terrain_type: "Natural Stable Island Ridge",
+    elevation_m: 91
   },
   {
-    id: "mock-site-chamoli-04",
-    name: "Pipalkoti Safe Flank Buffer Area",
-    district: "Chamoli",
-    state: "Uttarakhand",
-    lat: 30.4410,
-    lng: 79.3550,
-    capacity: 1900,
-    current_occupancy: 300,
-    safety_score: 74,
-    water_source: "Stream intake + Storage reservoirs",
-    road_connectivity: "Single-lane Macadam Road",
-    hospital_distance_km: 8.5,
-    school_distance_km: 3.4,
-    hazard_risk_level: "Moderate",
-    terrain_type: "Stable Bedrock Spur",
-    elevation_m: 1320
+    id: "mock-site-majuli-03",
+    name: "Kamalabari Safe Corridor Terminal",
+    district: "Majuli",
+    state: "Assam",
+    lat: 26.8850,
+    lng: 94.1350,
+    capacity: 3600,
+    current_occupancy: 480,
+    safety_score: 86,
+    water_source: "Sub-surface Aquifer & Purifier Tanks",
+    road_connectivity: "Major Ghat Approach Corridor",
+    hospital_distance_km: 3.2,
+    school_distance_km: 1.2,
+    hazard_risk_level: "Very Low",
+    terrain_type: "Reinforced Spur Terrace",
+    elevation_m: 90
+  },
+  {
+    id: "mock-site-majuli-04",
+    name: "Dakhinpat Highland Resettlement Center",
+    district: "Majuli",
+    state: "Assam",
+    lat: 26.8750,
+    lng: 94.2550,
+    capacity: 3800,
+    current_occupancy: 350,
+    safety_score: 88,
+    water_source: "Multi-stage Filtration Storage Tanks",
+    road_connectivity: "Satra Paved Bypass Link",
+    hospital_distance_km: 2.1,
+    school_distance_km: 0.9,
+    hazard_risk_level: "Very Low",
+    terrain_type: "High-Plinth Satra Plateau",
+    elevation_m: 92
   }
 ];
 
 export const MOCK_VILLAGES = [
   {
-    id: "mock-village-chamoli-01",
-    name: "Mock Joshigarh Upper",
-    district: "Chamoli",
-    state: "Uttarakhand",
-    lat: 30.5562,
-    lng: 79.5638,
-    population: 2450,
-    elderly_pct: 24.5,
+    id: "mock-village-majuli-01",
+    name: "Mock Salmora Riverfront",
+    district: "Majuli",
+    state: "Assam",
+    lat: 26.8720,
+    lng: 94.3120,
+    population: 2350,
+    elderly_pct: 22.0,
     road_access: "poor",
-    hazard_score: 92,
+    hazard_score: 93,
     hazard_factors: {
-      slope: 88,
-      rainfall: 94,
-      landslide_history: 95,
-      elevation: 85
+      slope: 82,
+      rainfall: 95,
+      landslide_history: 96,
+      elevation: 90
     },
-    exposure_score: 89,
-    vulnerability_score: 91,
+    exposure_score: 90,
+    vulnerability_score: 92,
     history_score: 95,
-    priority_score: 91.65,
+    priority_score: 92.45,
     priority_category: "Immediate",
     top_factors: [
-      { factor: "landslide_history", contribution: 95 },
-      { factor: "rainfall", contribution: 94 },
-      { factor: "slope", contribution: 88 }
+      { factor: "landslide_history", contribution: 96 },
+      { factor: "rainfall", contribution: 95 },
+      { factor: "elevation", contribution: 90 }
     ],
-    updated_at: {
-      _seconds: 1787671705,
-      _nanoseconds: 898000000
-    }
+    recommended_site_id: "mock-site-majuli-01"
   },
   {
-    id: "mock-village-chamoli-02",
-    name: "Mock Helang Valley",
-    district: "Chamoli",
-    state: "Uttarakhand",
-    lat: 30.5284,
-    lng: 79.5126,
-    population: 1820,
-    elderly_pct: 21.0,
+    id: "mock-village-majuli-02",
+    name: "Mock Kamalabari Lowland",
+    district: "Majuli",
+    state: "Assam",
+    lat: 26.9150,
+    lng: 94.1680,
+    population: 1950,
+    elderly_pct: 19.5,
     road_access: "poor",
-    hazard_score: 87,
+    hazard_score: 88,
     hazard_factors: {
-      slope: 85,
-      rainfall: 89,
-      landslide_history: 90,
-      elevation: 82
+      slope: 80,
+      rainfall: 91,
+      landslide_history: 92,
+      elevation: 86
     },
-    exposure_score: 84,
-    vulnerability_score: 86,
-    history_score: 88,
-    priority_score: 86.25,
+    exposure_score: 85,
+    vulnerability_score: 87,
+    history_score: 89,
+    priority_score: 87.25,
     priority_category: "Immediate",
     top_factors: [
-      { factor: "landslide_history", contribution: 90 },
-      { factor: "rainfall", contribution: 89 },
-      { factor: "slope", contribution: 85 }
+      { factor: "landslide_history", contribution: 92 },
+      { factor: "rainfall", contribution: 91 },
+      { factor: "elevation", contribution: 86 }
     ],
-    updated_at: {
-      _seconds: 1787671705,
-      _nanoseconds: 898000000
-    }
+    recommended_site_id: "mock-site-majuli-03"
   },
   {
-    id: "mock-village-chamoli-03",
-    name: "Mock Birahi Ridge",
-    district: "Chamoli",
-    state: "Uttarakhand",
-    lat: 30.4321,
-    lng: 79.4182,
-    population: 1400,
-    elderly_pct: 18.2,
+    id: "mock-village-majuli-03",
+    name: "Mock Garmur Wetland Border",
+    district: "Majuli",
+    state: "Assam",
+    lat: 27.0120,
+    lng: 94.2380,
+    population: 1600,
+    elderly_pct: 16.0,
     road_access: "moderate",
     hazard_score: 72,
     hazard_factors: {
-      slope: 74,
-      rainfall: 70,
-      landslide_history: 75,
-      elevation: 68
+      slope: 72,
+      rainfall: 74,
+      landslide_history: 76,
+      elevation: 70
     },
-    exposure_score: 68,
-    vulnerability_score: 74,
-    history_score: 70,
-    priority_score: 71.0,
+    exposure_score: 69,
+    vulnerability_score: 73,
+    history_score: 71,
+    priority_score: 71.25,
     priority_category: "Immediate",
     top_factors: [
-      { factor: "landslide_history", contribution: 75 },
-      { factor: "slope", contribution: 74 },
-      { factor: "rainfall", contribution: 70 }
+      { factor: "landslide_history", contribution: 76 },
+      { factor: "rainfall", contribution: 74 },
+      { factor: "vulnerability", contribution: 73 }
     ],
-    updated_at: {
-      _seconds: 1787671705,
-      _nanoseconds: 898000000
-    }
+    recommended_site_id: "mock-site-majuli-01"
   },
   {
-    id: "mock-village-chamoli-04",
-    name: "Mock Pipalkoti Slope",
-    district: "Chamoli",
-    state: "Uttarakhand",
-    lat: 30.4290,
-    lng: 79.3325,
-    population: 2100,
-    elderly_pct: 16.5,
+    id: "mock-village-majuli-04",
+    name: "Mock Bongaon Embankment Flank",
+    district: "Majuli",
+    state: "Assam",
+    lat: 26.9850,
+    lng: 94.3450,
+    population: 2150,
+    elderly_pct: 15.0,
     road_access: "moderate",
-    hazard_score: 68,
+    hazard_score: 67,
     hazard_factors: {
-      slope: 70,
-      rainfall: 66,
-      landslide_history: 72,
-      elevation: 65
+      slope: 68,
+      rainfall: 67,
+      landslide_history: 70,
+      elevation: 64
     },
-    exposure_score: 71,
-    vulnerability_score: 67,
-    history_score: 65,
-    priority_score: 67.95,
+    exposure_score: 72,
+    vulnerability_score: 66,
+    history_score: 64,
+    priority_score: 67.45,
     priority_category: "Short-term",
     top_factors: [
-      { factor: "landslide_history", contribution: 72 },
-      { factor: "slope", contribution: 70 },
-      { factor: "rainfall", contribution: 66 }
+      { factor: "exposure", contribution: 72 },
+      { factor: "landslide_history", contribution: 70 },
+      { factor: "slope", contribution: 68 }
     ],
-    updated_at: {
-      _seconds: 1787671705,
-      _nanoseconds: 898000000
-    }
+    recommended_site_id: "mock-site-majuli-02"
   },
   {
-    id: "mock-village-chamoli-05",
-    name: "Mock Nandaprayag East",
-    district: "Chamoli",
-    state: "Uttarakhand",
-    lat: 30.3312,
-    lng: 79.3245,
-    population: 980,
-    elderly_pct: 12.0,
+    id: "mock-village-majuli-05",
+    name: "Mock Jengraimukh Basin",
+    district: "Majuli",
+    state: "Assam",
+    lat: 27.0850,
+    lng: 94.3720,
+    population: 1100,
+    elderly_pct: 11.5,
     road_access: "moderate",
-    hazard_score: 48,
+    hazard_score: 49,
     hazard_factors: {
       slope: 50,
-      elevation: 49,
-      landslide_history: 48,
-      rainfall: 45
+      rainfall: 48,
+      landslide_history: 47,
+      elevation: 49
     },
-    exposure_score: 52,
-    vulnerability_score: 46,
-    history_score: 44,
-    priority_score: 47.8,
+    exposure_score: 51,
+    vulnerability_score: 47,
+    history_score: 45,
+    priority_score: 48.3,
     priority_category: "Medium-term",
     top_factors: [
+      { factor: "exposure", contribution: 51 },
       { factor: "slope", contribution: 50 },
-      { factor: "elevation", contribution: 49 },
-      { factor: "landslide_history", contribution: 48 }
+      { factor: "elevation", contribution: 49 }
     ],
-    updated_at: {
-      _seconds: 1787671705,
-      _nanoseconds: 898000000
-    }
+    recommended_site_id: "mock-site-majuli-01"
   },
   {
-    id: "mock-village-chamoli-06",
-    name: "Mock Gopeshwar Heights",
-    district: "Chamoli",
-    state: "Uttarakhand",
-    lat: 30.4124,
-    lng: 79.3512,
-    population: 1650,
-    elderly_pct: 11.5,
+    id: "mock-village-majuli-06",
+    name: "Mock Rawanapar Terrace",
+    district: "Majuli",
+    state: "Assam",
+    lat: 26.9640,
+    lng: 94.2210,
+    population: 1500,
+    elderly_pct: 10.5,
     road_access: "good",
-    hazard_score: 43,
+    hazard_score: 41,
     hazard_factors: {
-      slope: 44,
-      elevation: 43,
-      landslide_history: 41,
-      rainfall: 40
+      slope: 42,
+      rainfall: 41,
+      landslide_history: 40,
+      elevation: 43
     },
-    exposure_score: 45,
-    vulnerability_score: 40,
-    history_score: 42,
-    priority_score: 42.35,
+    exposure_score: 44,
+    vulnerability_score: 39,
+    history_score: 41,
+    priority_score: 41.35,
     priority_category: "Medium-term",
     top_factors: [
-      { factor: "slope", contribution: 44 },
+      { factor: "exposure", contribution: 44 },
       { factor: "elevation", contribution: 43 },
-      { factor: "landslide_history", contribution: 41 }
+      { factor: "slope", contribution: 42 }
     ],
-    updated_at: {
-      _seconds: 1787671705,
-      _nanoseconds: 898000000
-    }
+    recommended_site_id: "mock-site-majuli-02"
   },
   {
-    id: "mock-village-chamoli-07",
-    name: "Mock Karnaprayag West",
-    district: "Chamoli",
-    state: "Uttarakhand",
-    lat: 30.2598,
-    lng: 79.2184,
-    population: 820,
-    elderly_pct: 8.5,
+    id: "mock-village-majuli-07",
+    name: "Mock Ahotguri Inland Plain",
+    district: "Majuli",
+    state: "Assam",
+    lat: 26.9320,
+    lng: 94.0750,
+    population: 890,
+    elderly_pct: 8.0,
     road_access: "good",
-    hazard_score: 25,
+    hazard_score: 24,
     hazard_factors: {
-      elevation: 30,
-      rainfall: 28,
-      slope: 22,
-      landslide_history: 20
+      slope: 25,
+      rainfall: 27,
+      landslide_history: 22,
+      elevation: 28
     },
-    exposure_score: 26,
-    vulnerability_score: 24,
-    history_score: 22,
-    priority_score: 24.45,
+    exposure_score: 25,
+    vulnerability_score: 23,
+    history_score: 21,
+    priority_score: 23.45,
     priority_category: "Monitor",
     top_factors: [
-      { factor: "elevation", contribution: 30 },
-      { factor: "rainfall", contribution: 28 },
-      { factor: "slope", contribution: 22 }
+      { factor: "elevation", contribution: 28 },
+      { factor: "rainfall", contribution: 27 },
+      { factor: "slope", contribution: 25 }
     ],
-    updated_at: {
-      _seconds: 1787671705,
-      _nanoseconds: 898000000
-    }
+    recommended_site_id: "mock-site-majuli-03"
   },
   {
-    id: "mock-village-chamoli-08",
-    name: "Mock Tharali Basin",
-    district: "Chamoli",
-    state: "Uttarakhand",
-    lat: 30.0654,
-    lng: 79.5021,
-    population: 540,
-    elderly_pct: 7.0,
+    id: "mock-village-majuli-08",
+    name: "Mock Dakhinpat Ridge",
+    district: "Majuli",
+    state: "Assam",
+    lat: 26.8910,
+    lng: 94.2620,
+    population: 620,
+    elderly_pct: 6.5,
     road_access: "good",
-    hazard_score: 18,
+    hazard_score: 17,
     hazard_factors: {
-      rainfall: 20,
-      elevation: 19,
-      landslide_history: 18,
-      slope: 15
+      slope: 16,
+      rainfall: 19,
+      landslide_history: 17,
+      elevation: 18
     },
-    exposure_score: 20,
-    vulnerability_score: 17,
-    history_score: 15,
-    priority_score: 17.7,
+    exposure_score: 19,
+    vulnerability_score: 16,
+    history_score: 14,
+    priority_score: 16.7,
     priority_category: "Monitor",
     top_factors: [
-      { factor: "rainfall", contribution: 20 },
-      { factor: "elevation", contribution: 19 },
-      { factor: "landslide_history", contribution: 18 }
+      { factor: "rainfall", contribution: 19 },
+      { factor: "exposure", contribution: 19 },
+      { factor: "elevation", contribution: 18 }
     ],
-    updated_at: {
-      _seconds: 1787671705,
-      _nanoseconds: 898000000
-    }
+    recommended_site_id: "mock-site-majuli-02"
   }
 ];
 
-// Haversine distance calculator in KM
-export function calculateHaversineKm(lat1, lon1, lat2, lon2) {
-  const R = 6371; // Earth radius in km
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+export function calculateDistanceKm(lat1, lon1, lat2, lon2) {
+  const R = 6371; // Earth's radius in km
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
+    Math.cos(lat1 * (Math.PI / 180)) *
+      Math.cos(lat2 * (Math.PI / 180)) *
       Math.sin(dLon / 2) *
       Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return parseFloat((R * c).toFixed(1));
 }
 
-// Compute mock site matches for a village based on scoring algorithm
 export function getMockMatchesForVillage(villageId, siteWeights = DEFAULT_WEIGHTS.site_ranking) {
   const village = MOCK_VILLAGES.find((v) => v.id === villageId) || MOCK_VILLAGES[0];
-  
+
   return {
     village_id: village.id,
     matches: MOCK_RELOCATION_SITES.map((site) => {
-      const distance_km = calculateHaversineKm(village.lat, village.lng, site.lat, site.lng);
-      
-      // Compute criteria
+      const distance_km = calculateDistanceKm(village.lat, village.lng, site.lat, site.lng);
       const safetyScore = site.safety_score;
       const capacityScore = Math.min(100, Math.round((site.capacity / Math.max(village.population, 1000)) * 50));
       const infrastructureScore = 100;
-      const accessibilityScore = site.road_connectivity.includes("NH") ? 100 : 85;
-      const waterScore = site.water_source.includes("Filtration") ? 75 : 100;
-      const distanceScore = Math.max(0, Math.round(100 - (distance_km * 2)));
+      const accessibilityScore = 100;
+      const waterScore = 100;
+      const distanceScore = Math.max(0, Math.round(100 - (distance_km * 2.5)));
 
       const criteriaBreakdown = {
         safety: {

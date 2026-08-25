@@ -26,7 +26,7 @@ export default function Navbar({
               <h1 className="text-base lg:text-lg font-bold text-white tracking-tight flex items-center gap-2">
                 ResQ
                 <span className="text-xs px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-slate-300 font-medium">
-                  Himalayan Region
+                  Brahmaputra Basin, Assam
                 </span>
               </h1>
               {immediateCount > 0 && (
@@ -37,7 +37,7 @@ export default function Navbar({
               )}
             </div>
             <p className="text-xs text-slate-400">
-              Disaster Risk Monitoring & Relocation Decision Support System
+              Flood & Riverbank Erosion Risk Monitoring & Relocation Decision Support System
             </p>
           </div>
         </div>
@@ -55,7 +55,7 @@ export default function Navbar({
               className="bg-transparent border-none outline-none text-slate-200 font-semibold cursor-pointer pr-1"
             >
               <option value="All" className="bg-slate-900 text-white">All Districts</option>
-              <option value="Chamoli" className="bg-slate-900 text-white">Chamoli, UK</option>
+              <option value="Majuli" className="bg-slate-900 text-white">Majuli, Assam</option>
             </select>
           </div>
 

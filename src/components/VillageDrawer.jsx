@@ -65,7 +65,7 @@ function ScoreGauge({ score, categoryColor }) {
       {/* Center text overlay */}
       <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
         <span className="text-3xl font-black font-mono tracking-tight text-white">
-          {score}
+          {typeof score === 'number' ? score.toFixed(1) : (score || 0)}
         </span>
         <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
           out of 100
