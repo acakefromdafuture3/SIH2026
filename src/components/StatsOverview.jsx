@@ -1,5 +1,5 @@
 import React from "react";
-import { AlertOctagon, Users, Flame, Home, CheckCircle2 } from "lucide-react";
+import { AlertOctagon, Users, Flame, ShieldCheck, Activity, TrendingUp } from "lucide-react";
 
 export default function StatsOverview({ villages, sites }) {
   const immediateVillages = villages.filter((v) => v.priority_category === "Immediate");
@@ -20,90 +20,100 @@ export default function StatsOverview({ villages, sites }) {
   );
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
       {/* Stat 1: Immediate Action Required */}
-      <div className="bg-slate-900/80 border border-red-500/20 rounded-xl p-3.5 relative overflow-hidden flex flex-col justify-between shadow-sm">
+      <div className="glass-panel glass-panel-hover rounded-2xl p-3.5 sm:p-4 relative overflow-hidden flex flex-col justify-between border-rose-500/30">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-medium text-slate-400">Immediate Action</span>
-          <div className="w-7 h-7 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center">
-            <AlertOctagon className="w-4 h-4 text-red-500" />
+          <span className="text-[11px] font-bold uppercase tracking-wider text-rose-300">
+            Critical Red Zones
+          </span>
+          <div className="w-8 h-8 rounded-xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center">
+            <AlertOctagon className="w-4 h-4 text-rose-400 animate-pulse" />
           </div>
         </div>
-        <div className="mt-2">
+        <div className="mt-3">
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-black text-red-500 tracking-tight font-mono">
+            <span className="text-3xl font-black text-white font-mono tracking-tight">
               {immediateVillages.length}
             </span>
-            <span className="text-xs text-slate-400">villages (≥71 score)</span>
+            <span className="text-xs text-rose-400 font-semibold">Priority ≥ 71</span>
           </div>
-          <p className="text-[11px] text-red-400/80 mt-1 font-medium">
-            Requires urgent resettlement planning
-          </p>
+          <div className="w-full bg-slate-800 h-1.5 rounded-full mt-2 overflow-hidden">
+            <div
+              className="bg-gradient-to-r from-rose-600 to-red-500 h-full rounded-full transition-all duration-500"
+              style={{ width: `${(immediateVillages.length / Math.max(villages.length, 1)) * 100}%` }}
+            />
+          </div>
         </div>
-        <div className="absolute right-0 bottom-0 translate-x-3 translate-y-3 w-16 h-16 rounded-full bg-red-500/5 blur-xl pointer-events-none" />
       </div>
 
       {/* Stat 2: High Risk Population */}
-      <div className="bg-slate-900/80 border border-amber-500/20 rounded-xl p-3.5 relative overflow-hidden flex flex-col justify-between shadow-sm">
+      <div className="glass-panel glass-panel-hover rounded-2xl p-3.5 sm:p-4 relative overflow-hidden flex flex-col justify-between border-amber-500/30">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-medium text-slate-400">Population at Immediate Risk</span>
-          <div className="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
-            <Users className="w-4 h-4 text-amber-500" />
+          <span className="text-[11px] font-bold uppercase tracking-wider text-amber-300">
+            Pop. Exposed
+          </span>
+          <div className="w-8 h-8 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center">
+            <Users className="w-4 h-4 text-amber-400" />
           </div>
         </div>
-        <div className="mt-2">
+        <div className="mt-3">
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-black text-amber-400 tracking-tight font-mono">
+            <span className="text-3xl font-black text-amber-300 font-mono tracking-tight">
               {totalPopulationAtImmediateRisk.toLocaleString()}
             </span>
-            <span className="text-xs text-slate-400">people</span>
+            <span className="text-xs text-slate-400">citizens</span>
           </div>
-          <p className="text-[11px] text-slate-400 mt-1">
-            Across top {immediateVillages.length} critical zones
+          <p className="text-[11px] text-slate-400 mt-2 truncate">
+            Across top {immediateVillages.length} high-vulnerability sectors
           </p>
         </div>
       </div>
 
       {/* Stat 3: Highest Hazard Epicenter */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-3.5 relative overflow-hidden flex flex-col justify-between shadow-sm">
+      <div className="glass-panel glass-panel-hover rounded-2xl p-3.5 sm:p-4 relative overflow-hidden flex flex-col justify-between border-orange-500/30">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-medium text-slate-400">Highest Hazard Zone</span>
-          <div className="w-7 h-7 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center justify-center">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-orange-300">
+            Peak Threat Epicenter
+          </span>
+          <div className="w-8 h-8 rounded-xl bg-orange-500/15 border border-orange-500/30 flex items-center justify-center">
             <Flame className="w-4 h-4 text-orange-400" />
           </div>
         </div>
-        <div className="mt-2">
-          <div className="flex items-baseline justify-between">
-            <span className="text-sm font-bold text-slate-100 truncate max-w-[150px]">
+        <div className="mt-3">
+          <div className="flex items-baseline justify-between gap-1">
+            <span className="text-base font-bold text-white truncate max-w-[140px]">
               {highestPriorityVillage?.name || "N/A"}
             </span>
-            <span className="text-xs font-bold text-red-400 font-mono">
+            <span className="text-xs font-black text-rose-400 font-mono bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20">
               {highestPriorityVillage?.priority_score} pts
             </span>
           </div>
-          <p className="text-[11px] text-slate-400 mt-1 truncate">
-            {highestPriorityVillage?.top_factors?.[0]?.factor?.replace('_', ' ') || "Landslide & Slope"} risk
+          <p className="text-[11px] text-slate-400 mt-2 truncate">
+            Primary driver: <span className="text-slate-200 font-medium capitalize">{highestPriorityVillage?.top_factors?.[0]?.factor?.replace('_', ' ') || "Inundation & Erosion"}</span>
           </p>
         </div>
       </div>
 
       {/* Stat 4: Relocation Sites Available */}
-      <div className="bg-slate-900/80 border border-emerald-500/20 rounded-xl p-3.5 relative overflow-hidden flex flex-col justify-between shadow-sm">
+      <div className="glass-panel glass-panel-hover rounded-2xl p-3.5 sm:p-4 relative overflow-hidden flex flex-col justify-between border-emerald-500/30">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-medium text-slate-400">Available Safe Capacity</span>
-          <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
-            <Home className="w-4 h-4 text-emerald-400" />
+          <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-300">
+            Safe Haven Capacity
+          </span>
+          <div className="w-8 h-8 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center">
+            <ShieldCheck className="w-4 h-4 text-emerald-400" />
           </div>
         </div>
-        <div className="mt-2">
+        <div className="mt-3">
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-black text-emerald-400 tracking-tight font-mono">
+            <span className="text-3xl font-black text-emerald-300 font-mono tracking-tight">
               {totalSafeCapacity.toLocaleString()}
             </span>
-            <span className="text-xs text-slate-400">resettlement slots</span>
+            <span className="text-xs text-slate-400">ready slots</span>
           </div>
-          <p className="text-[11px] text-emerald-400/80 mt-1 font-medium">
-            {sites.length} validated safe destination zones
+          <p className="text-[11px] text-emerald-400/80 mt-2 font-medium">
+            {sites.length} vetted highland havens available
           </p>
         </div>
       </div>

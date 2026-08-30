@@ -1,44 +1,6 @@
 import React, { useState, useMemo } from "react";
-import { Search, ArrowUpDown, Filter, ChevronRight, AlertTriangle, Users } from "lucide-react";
-
-export const PRIORITY_STYLES = {
-  Immediate: {
-    bg: "bg-red-500",
-    text: "text-white",
-    border: "border-red-500/30",
-    glow: "ring-red-500/40",
-    lightBg: "bg-red-500/10 text-red-400 border-red-500/30",
-    badgeBg: "bg-red-500 text-white",
-    color: "#EF4444"
-  },
-  "Short-term": {
-    bg: "bg-orange-500",
-    text: "text-white",
-    border: "border-orange-500/30",
-    glow: "ring-orange-500/40",
-    lightBg: "bg-orange-500/10 text-orange-400 border-orange-500/30",
-    badgeBg: "bg-orange-500 text-white",
-    color: "#F97316"
-  },
-  "Medium-term": {
-    bg: "bg-yellow-500",
-    text: "text-black font-semibold",
-    border: "border-yellow-500/30",
-    glow: "ring-yellow-500/40",
-    lightBg: "bg-yellow-500/10 text-yellow-400 border-yellow-500/30",
-    badgeBg: "bg-yellow-500 text-black font-bold",
-    color: "#EAB308"
-  },
-  Monitor: {
-    bg: "bg-emerald-500",
-    text: "text-white",
-    border: "border-emerald-500/30",
-    glow: "ring-emerald-500/40",
-    lightBg: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30",
-    badgeBg: "bg-emerald-500 text-white",
-    color: "#10B981"
-  }
-};
+import { Search, ArrowUpDown, Filter, ChevronRight, AlertTriangle, Users, Flame, ShieldAlert } from "lucide-react";
+import { PRIORITY_STYLES } from "../constants/theme";
 
 export default function VillageList({
   villages,
@@ -65,7 +27,7 @@ export default function VillageList({
     { key: "All", label: "All", count: counts.All, dotColor: "bg-slate-400" },
     { key: "Immediate", label: "Immediate", count: counts.Immediate, dotColor: "bg-red-500" },
     { key: "Short-term", label: "Short-term", count: counts["Short-term"], dotColor: "bg-orange-500" },
-    { key: "Medium-term", label: "Medium-term", count: counts["Medium-term"], dotColor: "bg-yellow-500" },
+    { key: "Medium-term", label: "Medium", count: counts["Medium-term"], dotColor: "bg-yellow-500" },
     { key: "Monitor", label: "Monitor", count: counts.Monitor, dotColor: "bg-emerald-500" }
   ];
 
@@ -95,157 +57,135 @@ export default function VillageList({
   }, [villages, selectedCategory, searchQuery, sortBy]);
 
   return (
-    <div className="bg-slate-900/90 border border-slate-800 rounded-xl flex flex-col h-full overflow-hidden shadow-lg">
+    <div className="glass-panel rounded-2xl flex flex-col h-full overflow-hidden shadow-2xl">
       
-      {/* List Header & Search */}
-      <div className="p-3.5 border-b border-slate-800 space-y-3 bg-slate-900/60">
+      {/* Header & Search */}
+      <div className="p-3.5 sm:p-4 border-b border-slate-800/80 space-y-3 bg-slate-950/40">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-rose-400" />
-            <h2 className="text-sm font-bold text-slate-100 uppercase tracking-wider">
-              Priority Ranking
+            <ShieldAlert className="w-4 h-4 text-rose-500" />
+            <h2 className="text-sm font-bold text-white tracking-wide uppercase">
+              Priority Ranking Matrix
             </h2>
           </div>
-          <span className="text-xs text-slate-400 font-mono">
-            {filteredAndSortedVillages.length} / {villages.length} Villages
+          <span className="text-[11px] font-mono text-slate-400 bg-slate-800/60 px-2 py-0.5 rounded-full border border-slate-700">
+            {filteredAndSortedVillages.length} Sectors
           </span>
         </div>
 
         {/* Search input */}
         <div className="relative">
-          <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Search village by name..."
+            placeholder="Search village by name or sector..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-9 pr-3 py-1.5 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-rose-500/60 transition-colors"
+            className="w-full bg-slate-950/80 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/30 transition-all"
           />
-        </div>
-
-        {/* Category Filter Chips with Dynamic Counts */}
-        <div className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar">
-          {categories.map((cat) => (
+          {searchQuery && (
             <button
-              key={cat.key}
-              onClick={() => setSelectedCategory(cat.key)}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-all border ${
-                selectedCategory === cat.key
-                  ? "bg-slate-800 text-white border-rose-500/60 shadow-sm ring-1 ring-rose-500/30"
-                  : "bg-slate-950/70 text-slate-400 hover:text-slate-200 border-slate-800/80 hover:border-slate-700"
-              }`}
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs"
             >
-              <span className={`w-2 h-2 rounded-full ${cat.dotColor}`}></span>
-              <span>{cat.label}</span>
-              <span className={`px-1.5 py-0.2 rounded-md font-mono text-[10px] ${
-                selectedCategory === cat.key ? "bg-rose-500/20 text-rose-300 font-bold" : "bg-slate-900 text-slate-400"
-              }`}>
-                {cat.count}
-              </span>
+              ✕
             </button>
-          ))}
+          )}
         </div>
 
-        {/* Sort Select */}
-        <div className="flex items-center justify-between text-xs text-slate-400 pt-1">
-          <div className="flex items-center gap-1 text-[11px]">
-            <ArrowUpDown className="w-3 h-3 text-slate-400" />
-            <span>Sort By:</span>
-          </div>
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            aria-label="Sort Villages"
-            className="bg-slate-950 border border-slate-800 rounded px-2 py-0.5 text-xs text-slate-300 outline-none cursor-pointer"
-          >
-            <option value="priority_desc">Priority (High to Low)</option>
-            <option value="priority_asc">Priority (Low to High)</option>
-            <option value="hazard_desc">Hazard Score</option>
-            <option value="population_desc">Population</option>
-            <option value="elderly_desc">Elderly %</option>
-          </select>
+        {/* Dynamic Category Filter Tabs */}
+        <div className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-none">
+          {categories.map((cat) => {
+            const isActive = selectedCategory === cat.key;
+            return (
+              <button
+                key={cat.key}
+                onClick={() => setSelectedCategory(cat.key)}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                  isActive
+                    ? "bg-slate-800 text-white shadow-sm border border-slate-700 ring-1 ring-cyan-400/40"
+                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
+                }`}
+              >
+                <span className={`w-2 h-2 rounded-full ${cat.dotColor}`}></span>
+                <span>{cat.label}</span>
+                <span className={`text-[10px] font-mono px-1 rounded ${isActive ? 'bg-cyan-500/20 text-cyan-300' : 'bg-slate-800/80 text-slate-400'}`}>
+                  {cat.count}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Village List Items */}
-      <div className="flex-1 overflow-y-auto divide-y divide-slate-800/60 p-2 space-y-1.5">
+      {/* Village List Cards */}
+      <div className="flex-1 overflow-y-auto p-2.5 sm:p-3 space-y-2">
         {filteredAndSortedVillages.length === 0 ? (
-          <div className="text-center py-10 text-xs text-slate-500">
-            No villages match your current filters.
+          <div className="p-8 text-center text-xs text-slate-500 space-y-2">
+            <AlertTriangle className="w-6 h-6 text-slate-600 mx-auto" />
+            <p>No villages found matching your criteria</p>
           </div>
         ) : (
-          filteredAndSortedVillages.map((village, idx) => {
-            const isSelected = village.id === selectedVillageId;
+          filteredAndSortedVillages.map((village) => {
+            const isSelected = selectedVillageId === village.id;
             const style = PRIORITY_STYLES[village.priority_category] || PRIORITY_STYLES.Monitor;
 
             return (
               <div
                 key={village.id}
                 onClick={() => onSelectVillage(village.id)}
-                className={`group p-3 rounded-lg cursor-pointer transition-all border ${
+                className={`group relative rounded-xl p-3 cursor-pointer transition-all duration-200 border ${
                   isSelected
-                    ? "bg-slate-800/90 border-slate-600 shadow-md ring-1 ring-rose-500/50"
-                    : "bg-slate-950/40 border-slate-800/60 hover:bg-slate-800/50 hover:border-slate-700"
+                    ? "bg-slate-800/90 border-cyan-500/60 shadow-lg shadow-cyan-950/40 ring-1 ring-cyan-500/40"
+                    : "bg-slate-900/50 hover:bg-slate-800/60 border-slate-800/80 hover:border-slate-700"
                 }`}
               >
-                <div className="flex items-start justify-between gap-2">
-                  
-                  {/* Village Info */}
-                  <div className="flex-1 min-w-0">
+                {/* Left Priority Color Bar */}
+                <div
+                  className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full"
+                  style={{ backgroundColor: style.color }}
+                />
+
+                <div className="pl-2.5 flex items-start justify-between gap-2">
+                  <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-[11px] font-mono text-slate-500 font-bold">
-                        #{idx + 1}
-                      </span>
-                      <h3 className="text-sm font-semibold text-slate-100 group-hover:text-rose-400 transition-colors truncate">
+                      <h4 className={`text-xs sm:text-sm font-bold truncate transition-colors ${
+                        isSelected ? "text-cyan-300" : "text-white group-hover:text-slate-100"
+                      }`}>
                         {village.name}
-                      </h3>
+                      </h4>
+                      <span
+                        className={`text-[9px] uppercase font-black px-2 py-0.5 rounded-full ${style.lightBg}`}
+                      >
+                        {village.priority_category}
+                      </span>
                     </div>
-                    
-                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 text-[11px] text-slate-400">
-                      <span className="flex items-center gap-0.5">
+
+                    <div className="flex items-center gap-3 mt-1.5 text-[11px] text-slate-400">
+                      <span className="flex items-center gap-1">
                         <Users className="w-3 h-3 text-slate-500" />
-                        {village.population?.toLocaleString()} hab.
+                        {village.population?.toLocaleString()} pop.
                       </span>
                       <span>•</span>
-                      <span>Elderly: {village.elderly_pct}%</span>
-                      <span>•</span>
-                      <span className="capitalize">
-                        Road: <strong className={village.road_access === "poor" ? "text-red-400 font-medium" : "text-slate-300 font-medium"}>{village.road_access}</strong>
+                      <span className="flex items-center gap-1">
+                        <Flame className="w-3 h-3 text-orange-400" />
+                        Hazard: <strong className="text-slate-300">{village.hazard_score}</strong>
                       </span>
                     </div>
-
-                    {/* Top factors badges */}
-                    {village.top_factors && village.top_factors.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {village.top_factors.slice(0, 2).map((tf, i) => (
-                          <span
-                            key={i}
-                            className="text-[10px] px-1.5 py-0.5 rounded bg-slate-900 text-slate-400 border border-slate-800"
-                          >
-                            {tf.factor.replace('_', ' ')} ({tf.contribution}%)
-                          </span>
-                        ))}
-                      </div>
-                    )}
                   </div>
 
-                  {/* Priority Badge & Score Column */}
-                  <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-                    <div className="flex items-center gap-1">
-                      <span className="text-xs text-slate-500">Score</span>
-                      <span className="text-sm font-black font-mono text-slate-100">
-                        {village.priority_score}
+                  {/* Priority Score Gauge Badge */}
+                  <div className="flex flex-col items-end flex-shrink-0">
+                    <div className="flex items-baseline gap-0.5">
+                      <span className="text-sm font-black font-mono" style={{ color: style.color }}>
+                        {Math.round(village.priority_score)}
                       </span>
+                      <span className="text-[9px] text-slate-500">/100</span>
                     </div>
-
-                    <span
-                      className={`text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded shadow-sm ${style.badgeBg}`}
-                    >
-                      {village.priority_category}
-                    </span>
+                    <span className="text-[9px] text-slate-500 uppercase tracking-tight">Score</span>
                   </div>
-
                 </div>
+
               </div>
             );
           })

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Shield, Navigation, Droplet, Building2, Truck, Activity, ChevronDown, ChevronUp, CheckCircle } from "lucide-react";
+import { Shield, Navigation, Droplet, Building2, Truck, Activity, ChevronDown, ChevronUp, CheckCircle, ShieldCheck } from "lucide-react";
 
 export default function SiteMatchList({ matches = [], villageName, loading }) {
   const [expandedSiteId, setExpandedSiteId] = useState(matches[0]?.site_id || null);
@@ -17,34 +17,40 @@ export default function SiteMatchList({ matches = [], villageName, loading }) {
 
   if (loading) {
     return (
-      <div className="py-8 text-center text-xs text-slate-500 flex flex-col items-center justify-center gap-2">
-        <div className="w-5 h-5 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
-        <span>Calculating multi-criteria site suitability ranking...</span>
+      <div className="py-12 text-center text-xs text-slate-400 flex flex-col items-center justify-center gap-3">
+        <div className="w-8 h-8 border-3 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
+        <span className="font-medium tracking-wide">Evaluating multi-criteria relocation algorithm & terrain safety...</span>
       </div>
     );
   }
 
   if (!matches || matches.length === 0) {
     return (
-      <div className="py-8 text-center text-xs text-slate-500">
-        No candidate relocation sites found.
+      <div className="glass-panel rounded-2xl p-12 text-center text-xs text-slate-500 space-y-2">
+        <Shield className="w-8 h-8 text-slate-700 mx-auto" />
+        <p>No candidate relocation sites found for this sector.</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-2.5">
-      <div className="flex items-center justify-between pb-1">
-        <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-          <Navigation className="w-3.5 h-3.5 text-cyan-400" />
-          Recommended Relocation Sites
-        </h4>
-        <span className="text-[11px] text-slate-400">
-          Ranked for {villageName}
+    <div className="glass-panel rounded-2xl p-4 sm:p-6 space-y-4 shadow-2xl">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-800">
+        <div>
+          <h4 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-cyan-400" />
+            Highland Safe Havens & Resettlement Match
+          </h4>
+          <p className="text-xs text-slate-400 mt-0.5">
+            Algorithmic priority suitability ranked for <strong className="text-slate-200">{villageName}</strong>
+          </p>
+        </div>
+        <span className="text-[11px] font-mono text-cyan-300 bg-cyan-500/10 border border-cyan-500/30 px-3 py-1 rounded-full self-start">
+          {matches.length} Certified Safe Zones
         </span>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-3">
         {matches.map((match, idx) => {
           const isTopRanked = idx === 0;
           const isExpanded = expandedSiteId === match.site_id;
@@ -54,23 +60,23 @@ export default function SiteMatchList({ matches = [], villageName, loading }) {
           return (
             <div
               key={match.site_id}
-              className={`rounded-xl border transition-all ${
+              className={`rounded-2xl border transition-all duration-200 overflow-hidden ${
                 isTopRanked
-                  ? "bg-slate-900/90 border-cyan-500/40 shadow-md shadow-cyan-950/20"
+                  ? "bg-slate-900/90 border-cyan-500/50 shadow-xl shadow-cyan-950/30 ring-1 ring-cyan-500/30"
                   : "bg-slate-950/60 border-slate-800 hover:border-slate-700"
               }`}
             >
               {/* Site Header Row */}
               <div
                 onClick={() => toggleExpand(match.site_id)}
-                className="p-3 cursor-pointer flex items-center justify-between gap-2"
+                className="p-3.5 sm:p-4 cursor-pointer flex items-center justify-between gap-3 select-none"
               >
-                <div className="flex items-center gap-2.5 min-w-0">
+                <div className="flex items-center gap-3 min-w-0">
                   <div
-                    className={`w-6 h-6 rounded-lg font-mono text-xs font-bold flex items-center justify-center flex-shrink-0 ${
+                    className={`w-8 h-8 rounded-xl font-mono text-xs font-black flex items-center justify-center flex-shrink-0 shadow-md ${
                       isTopRanked
-                        ? "bg-cyan-500 text-slate-950"
-                        : "bg-slate-800 text-slate-300"
+                        ? "bg-gradient-to-br from-cyan-400 to-blue-600 text-slate-950"
+                        : "bg-slate-800 text-slate-300 border border-slate-700"
                     }`}
                   >
                     #{idx + 1}
@@ -78,104 +84,91 @@ export default function SiteMatchList({ matches = [], villageName, loading }) {
 
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <h5 className="text-xs font-bold text-slate-100 truncate">
+                      <h5 className="text-sm font-bold text-white truncate">
                         {match.site_name}
                       </h5>
                       {isTopRanked && (
-                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-medium">
-                          Best Fit
+                        <span className="text-[10px] uppercase font-black tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                          Top Match
                         </span>
                       )}
                     </div>
 
-                    <div className="flex items-center gap-3 text-[11px] text-slate-400 mt-0.5">
-                      <span>Distance: <strong className="text-slate-200 font-mono">{match.distance_km} km</strong></span>
+                    <div className="flex items-center gap-4 text-xs text-slate-400 mt-1">
+                      <span>Vector: <strong className="text-cyan-300 font-mono font-bold">{match.distance_km} km</strong></span>
                       {match.site_details?.capacity && (
-                        <span>Capacity: <strong className="text-slate-200 font-mono">{match.site_details.capacity.toLocaleString()}</strong></span>
+                        <span>Capacity: <strong className="text-slate-200 font-mono">{match.site_details.capacity.toLocaleString()} persons</strong></span>
                       )}
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <div className={`px-2.5 py-1 rounded-lg border text-xs font-mono font-bold ${scoreClass}`}>
-                    {typeof match.suitability_score === 'number' ? match.suitability_score.toFixed(1) : match.suitability_score}%
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  <div className={`px-3 py-1.5 rounded-xl border text-xs font-mono font-black ${scoreClass}`}>
+                    {match.suitability_score}% Match
                   </div>
-                  <button className="text-slate-400 hover:text-slate-200 p-1">
+                  <div className="p-1 rounded-lg text-slate-400 hover:text-white">
                     {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                  </button>
+                  </div>
                 </div>
               </div>
 
-              {/* Criteria Breakdown & Site Specs (Expandable) */}
+              {/* Criteria Breakdown (Expanded) */}
               {isExpanded && (
-                <div className="px-3 pb-3 pt-1 border-t border-slate-800/80 space-y-3 text-xs bg-slate-950/40 rounded-b-xl">
-                  
-                  {/* Criteria Multi-bar grid */}
-                  <div>
-                    <div className="text-[11px] font-semibold text-slate-400 mb-1.5 flex items-center justify-between">
-                      <span>Criteria Score Breakdown (Weighted):</span>
-                      <span className="text-[10px] text-slate-500">Score & Points</span>
+                <div className="px-4 pb-4 pt-2 border-t border-slate-800/80 bg-slate-950/70 space-y-3 animate-fadeIn text-xs">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                    Suitability Matrix Factors
+                  </span>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                    <div className="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                      <div className="flex items-center justify-between text-slate-400 mb-1">
+                        <span className="flex items-center gap-1"><Navigation className="w-3 h-3 text-cyan-400" /> Proximity</span>
+                        <strong className="text-white font-mono">{breakdown.distance?.score || 0}%</strong>
+                      </div>
+                      <div className="w-full bg-slate-800 h-1 rounded-full">
+                        <div className="bg-cyan-500 h-full rounded-full" style={{ width: `${breakdown.distance?.score || 0}%` }} />
+                      </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {Object.entries(breakdown).map(([key, crit]) => {
-                        const labelNames = {
-                          safety: "Safety & Hazard",
-                          capacity: "Capacity / Space",
-                          infrastructure: "Infrastructure",
-                          accessibility: "Road Access",
-                          water: "Water Supply",
-                          distance: "Proximity"
-                        };
-                        const weightPct = Math.round((crit.weight || 0) * 100);
-                        const rawScore = typeof crit.score === 'number' ? Math.round(crit.score) : crit.score;
-                        const weightedPts = typeof crit.weighted === 'number' ? crit.weighted.toFixed(1) : crit.weighted;
+                    <div className="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                      <div className="flex items-center justify-between text-slate-400 mb-1">
+                        <span className="flex items-center gap-1"><Droplet className="w-3 h-3 text-blue-400" /> Water</span>
+                        <strong className="text-white font-mono">{breakdown.water?.score || 0}%</strong>
+                      </div>
+                      <div className="w-full bg-slate-800 h-1 rounded-full">
+                        <div className="bg-blue-500 h-full rounded-full" style={{ width: `${breakdown.water?.score || 0}%` }} />
+                      </div>
+                    </div>
 
-                        return (
-                          <div key={key} className="bg-slate-900/80 p-2 rounded-lg border border-slate-800">
-                            <div className="flex items-center justify-between text-[11px] mb-1 gap-2">
-                              <span className="text-slate-300 font-medium truncate">
-                                {labelNames[key] || key} <span className="text-slate-500 font-normal text-[10px]">({weightPct}%)</span>
-                              </span>
-                              <span className="font-mono text-cyan-400 font-bold whitespace-nowrap text-right text-[11px]">
-                                {rawScore}/100 <span className="text-slate-400 font-normal">({weightedPts}pts)</span>
-                              </span>
-                            </div>
-                            <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                              <div
-                                className="bg-gradient-to-r from-cyan-500 to-blue-500 h-full rounded-full transition-all duration-500"
-                                style={{ width: `${Math.min(100, Math.max(0, rawScore))}%` }}
-                              />
-                            </div>
-                          </div>
-                        );
-                      })}
+                    <div className="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                      <div className="flex items-center justify-between text-slate-400 mb-1">
+                        <span className="flex items-center gap-1"><Building2 className="w-3 h-3 text-emerald-400" /> Capacity</span>
+                        <strong className="text-white font-mono">{breakdown.capacity?.score || 0}%</strong>
+                      </div>
+                      <div className="w-full bg-slate-800 h-1 rounded-full">
+                        <div className="bg-emerald-500 h-full rounded-full" style={{ width: `${breakdown.capacity?.score || 0}%` }} />
+                      </div>
+                    </div>
+
+                    <div className="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                      <div className="flex items-center justify-between text-slate-400 mb-1">
+                        <span className="flex items-center gap-1"><Truck className="w-3 h-3 text-amber-400" /> Road Link</span>
+                        <strong className="text-white font-mono">{breakdown.accessibility?.score || 0}%</strong>
+                      </div>
+                      <div className="w-full bg-slate-800 h-1 rounded-full">
+                        <div className="bg-amber-500 h-full rounded-full" style={{ width: `${breakdown.accessibility?.score || 0}%` }} />
+                      </div>
                     </div>
                   </div>
 
-                  {/* Site Environmental & Connectivity Specs */}
                   {match.site_details && (
-                    <div className="grid grid-cols-2 gap-2 text-[11px] pt-1 text-slate-300 border-t border-slate-800/60">
-                      <div>
-                        <span className="text-slate-500 block">Water Source</span>
-                        <span className="font-medium text-slate-200">{match.site_details.water_source}</span>
-                      </div>
-                      <div>
-                        <span className="text-slate-500 block">Connectivity</span>
-                        <span className="font-medium text-slate-200">{match.site_details.road_connectivity}</span>
-                      </div>
-                      <div>
-                        <span className="text-slate-500 block">Terrain & Elevation</span>
-                        <span className="font-medium text-slate-200">{match.site_details.terrain_type} ({match.site_details.elevation_m}m)</span>
-                      </div>
-                      <div>
-                        <span className="text-slate-500 block">Hospital Proximity</span>
-                        <span className="font-medium text-slate-200">{match.site_details.hospital_distance_km} km to nearest facility</span>
-                      </div>
+                    <div className="flex items-center gap-3 text-[11px] text-slate-400 pt-1">
+                      <span>Coordinates: <strong className="text-slate-300 font-mono">{match.site_details.lat}°N, {match.site_details.lng}°E</strong></span>
+                      <span>•</span>
+                      <span>Elevation: <strong className="text-emerald-400 font-mono">{match.site_details.elevation || 86}m</strong></span>
                     </div>
                   )}
-
                 </div>
               )}
             </div>

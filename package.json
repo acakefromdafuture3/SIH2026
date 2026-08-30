@@ -1,17 +1,12 @@
 {
-  "name": "resq-sih2026",
-  "version": "1.0.0",
+  "name": "sih2026-disaster-relocation-dashboard",
   "private": true,
+  "version": "1.0.0",
   "type": "module",
-  "description": "ResQ — Disaster Risk Monitoring & Relocation Decision Support System",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview",
-    "emulators:start": "firebase emulators:start",
-    "emulators:export": "firebase emulators:export ./emulator-data",
-    "emulators:import": "firebase emulators:start --import=./emulator-data",
-    "seed": "npm --prefix functions run seed"
+    "preview": "vite preview"
   },
   "dependencies": {
     "clsx": "^2.1.1",
@@ -29,7 +24,6 @@
     "@types/react-dom": "^18.3.5",
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
-    "firebase-tools": "^13.31.1",
     "postcss": "^8.5.3",
     "tailwindcss": "^3.4.17",
     "vite": "^6.2.0"
