@@ -16,7 +16,7 @@ import {
   CheckCircle2,
   Info
 } from "lucide-react";
-import { PIN_COLORS } from "./MapPins";
+import { PIN_COLORS } from "../constants/theme";
 
 /**
  * Circular / Semi-circular Radial SVG Score Gauge
@@ -132,13 +132,13 @@ export default function VillageDrawer({
       {isOpen && (
         <div
           onClick={onClose}
-          className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-40 lg:hidden transition-opacity"
+          className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-[9980] lg:hidden transition-opacity"
         />
       )}
 
       {/* Sliding Drawer Container */}
       <aside
-        className={`fixed top-0 right-0 h-full w-full sm:w-[440px] md:w-[480px] bg-slate-900/95 backdrop-blur-xl border-l border-slate-800 shadow-2xl z-50 transform transition-transform duration-300 ease-in-out flex flex-col ${
+        className={`fixed top-0 right-0 h-full w-full sm:w-[440px] md:w-[480px] bg-slate-900/95 backdrop-blur-xl border-l border-slate-800 shadow-2xl z-[9990] transform transition-transform duration-300 ease-in-out flex flex-col ${
           isOpen ? "translate-x-0" : "translate-x-full pointer-events-none"
         }`}
       >

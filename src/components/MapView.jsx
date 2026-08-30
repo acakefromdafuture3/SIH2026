@@ -8,30 +8,45 @@ import {
   Tooltip,
   Circle,
   CircleMarker,
+  ZoomControl,
   useMap
 } from "react-leaflet";
 import L from "leaflet";
-import { Layers, ShieldCheck, AlertCircle, Compass, Maximize2, Flame, CloudRain } from "lucide-react";
-import { PRIORITY_STYLES } from "./VillageList";
+import { Layers, ShieldCheck, AlertCircle, Compass, Maximize2, Minimize2, Flame, CloudRain } from "lucide-react";
+import { PRIORITY_STYLES } from "../constants/theme";
 import MapPins from "./MapPins";
 
-// Fix default leaflet marker asset missing bug
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-});
+
+// Helper component to resize Leaflet map tiles when expanded/collapsed
+function MapResizer({ isExpanded }) {
+  const map = useMap();
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      map.invalidateSize();
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [isExpanded, map]);
+  return null;
+}
 
 // Helper component to center and animate map to selected coordinates
 function MapController({ center, zoom }) {
   const map = useMap();
   useEffect(() => {
-    if (center && center[0] && center[1]) {
-      map.flyTo(center, zoom, {
-        duration: 1.2,
-        easeLinearity: 0.25
-      });
+    if (center && Array.isArray(center) && center.length >= 2) {
+      const lat = parseFloat(center[0]);
+      const lng = parseFloat(center[1]);
+      if (!isNaN(lat) && !isNaN(lng)) {
+        const size = map.getSize();
+        if (size.x > 0 && size.y > 0) {
+          map.flyTo([lat, lng], zoom, {
+            duration: 1.2,
+            easeLinearity: 0.25
+          });
+        } else {
+          map.setView([lat, lng], zoom);
+        }
+      }
     }
   }, [center, zoom, map]);
   return null;
@@ -124,6 +139,18 @@ export default function MapView({
   const [showConnections, setShowConnections] = useState(true);
   const [showLandslideHeatmap, setShowLandslideHeatmap] = useState(true);
   const [showRainfallContours, setShowRainfallContours] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  // Close fullscreen on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape" && isExpanded) {
+        setIsExpanded(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isExpanded]);
 
   // Default center initialized at [26.95, 94.20] (Majuli Island, Assam)
   const defaultCenter = [26.95, 94.20];
@@ -131,22 +158,28 @@ export default function MapView({
     ? [selectedVillage.lat, selectedVillage.lng]
     : defaultCenter;
 
+  // Strict India geographical bounding box
+  const INDIA_BOUNDS = [
+    [6.0, 68.0],   // Southwest coordinates (Kanyakumari / Arabian Sea)
+    [37.5, 97.5]   // Northeast coordinates (Kashmir / Arunachal Pradesh)
+  ];
+
   const tileLayers = {
     voyager: {
-      url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-      attribution: '&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+      url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
+      attribution: '&copy; <a href="https://www.esri.com/">Esri</a>'
     },
     positron: {
-      url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-      attribution: '&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+      url: "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}",
+      attribution: '&copy; <a href="https://www.esri.com/">Esri</a>'
     },
     dark: {
-      url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-      attribution: '&copy; <a href="https://carto.com/">CARTO</a>'
+      url: "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}",
+      attribution: '&copy; <a href="https://www.esri.com/">Esri</a>'
     },
     satellite: {
       url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-      attribution: '&copy; Esri &mdash; Earthstar Geographics'
+      attribution: '&copy; <a href="https://www.esri.com/">Esri</a>'
     },
     osm: {
       url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
@@ -198,88 +231,117 @@ export default function MapView({
   ];
 
   return (
-    <div className="relative w-full h-full rounded-xl overflow-hidden border border-slate-800 shadow-xl bg-slate-950">
-      
+    <div
+      className={`transition-all duration-300 ${
+        isExpanded
+          ? "fixed inset-2 sm:inset-4 z-[500] rounded-2xl overflow-hidden border border-slate-700 shadow-2xl bg-slate-950 flex flex-col"
+          : "relative w-full h-full rounded-xl overflow-hidden border border-slate-800 shadow-xl bg-slate-950"
+      }`}
+    >
       {/* Map Controls Header Overlay with Layer Switcher */}
-      <div className="absolute top-3 left-3 z-[1000] flex flex-wrap items-center gap-2 pointer-events-auto bg-slate-900/90 backdrop-blur-md px-3 py-2 rounded-xl border border-slate-800 shadow-md">
+      <div className="absolute top-3 left-3 right-3 z-[30] flex flex-wrap items-center justify-between gap-2 pointer-events-none">
         
-        {/* Layer style selector */}
-        <div className="flex items-center gap-1.5 text-xs text-slate-300">
-          <Layers className="w-3.5 h-3.5 text-rose-400" />
-          <span className="text-slate-500">Basemap:</span>
-          <select
-            value={mapStyle}
-            onChange={(e) => setMapStyle(e.target.value)}
-            aria-label="Map Basemap Style"
-            className="bg-slate-950 border border-slate-800 rounded px-2 py-0.5 text-xs text-slate-200 outline-none cursor-pointer"
-          >
-            <option value="voyager">CartoDB Voyager (Topography)</option>
-            <option value="positron">CartoDB Positron (Light)</option>
-            <option value="dark">CartoDB Dark Matter</option>
-            <option value="satellite">Satellite Imagery</option>
-            <option value="osm">Street Map (OSM)</option>
-          </select>
-        </div>
+        {/* Left-side Layer Switchers */}
+        <div className="flex flex-wrap items-center gap-2 pointer-events-auto bg-slate-900/90 backdrop-blur-md px-3 py-2 rounded-xl border border-slate-800 shadow-md">
+          {/* Layer style selector */}
+          <div className="flex items-center gap-1.5 text-xs text-slate-300">
+            <Layers className="w-3.5 h-3.5 text-rose-400" />
+            <span className="text-slate-500">Basemap:</span>
+            <select
+              value={mapStyle}
+              onChange={(e) => setMapStyle(e.target.value)}
+              aria-label="Map Basemap Style"
+              className="bg-slate-950 border border-slate-800 rounded px-2 py-0.5 text-xs text-slate-200 outline-none cursor-pointer"
+            >
+              <option value="voyager">Esri World Topo Map</option>
+              <option value="dark">Esri Dark Gray Canvas</option>
+              <option value="positron">Esri Light Gray Canvas</option>
+              <option value="satellite">Esri World Imagery (Satellite)</option>
+              <option value="osm">OpenStreetMap Standard</option>
+            </select>
+          </div>
 
-        <div className="h-4 w-px bg-slate-700 mx-1"></div>
+          <div className="h-4 w-px bg-slate-700 mx-1 hidden sm:block"></div>
 
-        {/* Toggle Landslide Risk Heatmap */}
-        <label className="flex items-center gap-1 text-xs text-slate-300 cursor-pointer select-none">
-          <input
-            type="checkbox"
-            checked={showLandslideHeatmap}
-            onChange={(e) => setShowLandslideHeatmap(e.target.checked)}
-            className="rounded bg-slate-950 border-slate-700 text-rose-500 focus:ring-0 w-3.5 h-3.5"
-          />
-          <span className="flex items-center gap-1 text-rose-400 font-medium">
-            <Flame className="w-3.5 h-3.5" /> Landslide Heatmap
-          </span>
-        </label>
-
-        {/* Toggle Rainfall Contours */}
-        <label className="flex items-center gap-1 text-xs text-slate-300 cursor-pointer select-none">
-          <input
-            type="checkbox"
-            checked={showRainfallContours}
-            onChange={(e) => setShowRainfallContours(e.target.checked)}
-            className="rounded bg-slate-950 border-slate-700 text-blue-500 focus:ring-0 w-3.5 h-3.5"
-          />
-          <span className="flex items-center gap-1 text-sky-400 font-medium">
-            <CloudRain className="w-3.5 h-3.5" /> Rainfall Contours
-          </span>
-        </label>
-
-        {/* Toggle Resettlement Sites */}
-        <label className="flex items-center gap-1 text-xs text-slate-300 cursor-pointer select-none">
-          <input
-            type="checkbox"
-            checked={showSites}
-            onChange={(e) => setShowSites(e.target.checked)}
-            className="rounded bg-slate-950 border-slate-700 text-blue-500 focus:ring-0 w-3.5 h-3.5"
-          />
-          <span className="flex items-center gap-1 text-blue-400 font-medium">
-            <ShieldCheck className="w-3.5 h-3.5" /> Safe Sites ({sites.length})
-          </span>
-        </label>
-
-        {/* Toggle Distance Vectors */}
-        {selectedVillage && (
+          {/* Toggle Landslide Risk Heatmap */}
           <label className="flex items-center gap-1 text-xs text-slate-300 cursor-pointer select-none">
             <input
               type="checkbox"
-              checked={showConnections}
-              onChange={(e) => setShowConnections(e.target.checked)}
-              className="rounded bg-slate-950 border-slate-700 text-cyan-500 focus:ring-0 w-3.5 h-3.5"
+              checked={showLandslideHeatmap}
+              onChange={(e) => setShowLandslideHeatmap(e.target.checked)}
+              className="rounded bg-slate-950 border-slate-700 text-rose-500 focus:ring-0 w-3.5 h-3.5"
             />
-            <span className="text-cyan-300 font-medium">Relocation Vector</span>
+            <span className="flex items-center gap-1 text-rose-400 font-medium">
+              <Flame className="w-3.5 h-3.5" /> Hazard Heatmap
+            </span>
           </label>
-        )}
+
+          {/* Toggle Rainfall Contours */}
+          <label className="flex items-center gap-1 text-xs text-slate-300 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={showRainfallContours}
+              onChange={(e) => setShowRainfallContours(e.target.checked)}
+              className="rounded bg-slate-950 border-slate-700 text-blue-500 focus:ring-0 w-3.5 h-3.5"
+            />
+            <span className="flex items-center gap-1 text-sky-400 font-medium">
+              <CloudRain className="w-3.5 h-3.5" /> Rain Contours
+            </span>
+          </label>
+
+          {/* Toggle Resettlement Sites */}
+          <label className="flex items-center gap-1 text-xs text-slate-300 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={showSites}
+              onChange={(e) => setShowSites(e.target.checked)}
+              className="rounded bg-slate-950 border-slate-700 text-blue-500 focus:ring-0 w-3.5 h-3.5"
+            />
+            <span className="flex items-center gap-1 text-blue-400 font-medium">
+              <ShieldCheck className="w-3.5 h-3.5" /> Sites ({sites.length})
+            </span>
+          </label>
+
+          {/* Toggle Distance Vectors */}
+          {selectedVillage && (
+            <label className="flex items-center gap-1 text-xs text-slate-300 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={showConnections}
+                onChange={(e) => setShowConnections(e.target.checked)}
+                className="rounded bg-slate-950 border-slate-700 text-cyan-500 focus:ring-0 w-3.5 h-3.5"
+              />
+              <span className="text-cyan-300 font-medium">Vector</span>
+            </label>
+          )}
+        </div>
+
+        {/* Right-side Expand / Minimize Fullscreen Map Button */}
+        <div className="pointer-events-auto flex items-center gap-2">
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-900/90 hover:bg-slate-800 active:bg-slate-700 backdrop-blur-md border border-slate-700 text-xs font-bold text-cyan-300 hover:text-white transition-all shadow-lg cursor-pointer"
+            title={isExpanded ? "Minimize Map (Esc)" : "Expand Map View"}
+          >
+            {isExpanded ? (
+              <>
+                <Minimize2 className="w-4 h-4 text-cyan-400" />
+                <span>Minimize Map</span>
+              </>
+            ) : (
+              <>
+                <Maximize2 className="w-4 h-4 text-cyan-400" />
+                <span>Expand Map</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Map Legend Overlay */}
-      <div className="absolute bottom-4 left-3 z-[1000] bg-slate-900/90 backdrop-blur-md px-3.5 py-2.5 rounded-xl border border-slate-800 text-xs shadow-lg space-y-1.5">
+      <div className="absolute bottom-4 left-3 z-[30] bg-slate-900/90 backdrop-blur-md px-3.5 py-2.5 rounded-xl border border-slate-800 text-xs shadow-lg space-y-1.5 pointer-events-auto">
         <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
-          GIS Layers & Priority
+          India GIS & Priority
         </span>
         <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px]">
           <div className="flex items-center gap-1.5">
@@ -313,22 +375,31 @@ export default function MapView({
           {showLandslideHeatmap && (
             <div className="flex items-center gap-1.5 text-rose-400">
               <span className="w-2.5 h-2.5 rounded-full bg-rose-500/40 border border-rose-500"></span>
-              <span>Landslide Risk Heat Buffer</span>
+              <span>Hazard Heat Buffer</span>
             </div>
           )}
         </div>
       </div>
 
-      {/* Leaflet Map */}
+      {/* Leaflet Map strictly restricted to India */}
       <MapContainer
         center={defaultCenter}
         zoom={10}
+        minZoom={5}
+        maxZoom={18}
+        maxBounds={INDIA_BOUNDS}
+        maxBoundsViscosity={1.0}
         scrollWheelZoom={true}
+        zoomControl={false}
         className="w-full h-full"
       >
+        <ZoomControl position="bottomright" />
+        <MapResizer isExpanded={isExpanded} />
+
         <TileLayer
           url={tileLayers[mapStyle].url}
           attribution={tileLayers[mapStyle].attribution}
+          bounds={INDIA_BOUNDS}
         />
 
         <MapController
@@ -360,7 +431,9 @@ export default function MapView({
         {/* 2. Flood & Riverbank Erosion Risk Heatmap Buffers Overlay */}
         {showLandslideHeatmap &&
           villages.map((village) => {
-            if (!village.lat || !village.lng) return null;
+            const lat = parseFloat(village.lat);
+            const lng = parseFloat(village.lng);
+            if (isNaN(lat) || isNaN(lng)) return null;
             const hazardScore = village.hazard_score || 50;
 
             let color = "#10B981";
@@ -409,12 +482,15 @@ export default function MapView({
         {showSites &&
           sites.map((site) => {
             const isTopMatched = siteMatches.length > 0 && siteMatches[0]?.site_id === site.id;
+            const lat = parseFloat(site.lat);
+            const lng = parseFloat(site.lng);
+            if (isNaN(lat) || isNaN(lng)) return null;
             const matchInfo = siteMatches.find((m) => m.site_id === site.id);
 
             return (
               <Marker
-                key={site.id}
-                position={[site.lat, site.lng]}
+                key={`site-${site.id}`}
+                position={[lat, lng]}
                 icon={createBlueShieldIcon(isTopMatched)}
               >
                 <Popup>
@@ -476,13 +552,18 @@ export default function MapView({
             const topMatch = siteMatches[0];
             const topSite = sites.find((s) => s.id === topMatch?.site_id);
             if (!topSite) return null;
+            const vLat = parseFloat(selectedVillage.lat);
+            const vLng = parseFloat(selectedVillage.lng);
+            const sLat = parseFloat(topSite.lat);
+            const sLng = parseFloat(topSite.lng);
+            if (isNaN(vLat) || isNaN(vLng) || isNaN(sLat) || isNaN(sLng)) return null;
 
             return (
               <Polyline
                 key={`top-vector-${selectedVillage.id}-${topSite.id}`}
                 positions={[
-                  [selectedVillage.lat, selectedVillage.lng],
-                  [topSite.lat, topSite.lng]
+                  [vLat, vLng],
+                  [sLat, sLng]
                 ]}
                 pathOptions={{
                   color: "#06B6D4",

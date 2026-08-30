@@ -5,13 +5,7 @@ import { httpsCallable } from "firebase/functions";
 import { functions } from "../firebase";
 import { ApiService } from "../services/api";
 
-// Priority Color Configuration
-export const PIN_COLORS = {
-  Immediate: "#EF4444",   // Red with pulse animation
-  "Short-term": "#F97316", // Orange
-  "Medium-term": "#EAB308",// Yellow
-  Monitor: "#10B981"       // Green
-};
+import { PIN_COLORS } from "../constants/theme";
 
 /**
  * Creates a circular SVG Leaflet DivIcon with exact color coding and pulse animation for Immediate category
@@ -144,7 +138,9 @@ export default function MapPins({
   return (
     <>
       {villages.map((village) => {
-        if (!village.lat || !village.lng) return null;
+        const lat = parseFloat(village.lat);
+        const lng = parseFloat(village.lng);
+        if (isNaN(lat) || isNaN(lng)) return null;
 
         const isSelected = selectedVillageId === village.id;
         const icon = createCircularPinIcon(
@@ -158,7 +154,7 @@ export default function MapPins({
         return (
           <Marker
             key={`pin-${village.id}`}
-            position={[village.lat, village.lng]}
+            position={[lat, lng]}
             icon={icon}
             eventHandlers={{
               click: () => {

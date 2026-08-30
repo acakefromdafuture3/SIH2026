@@ -18,6 +18,14 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   </head>
   <body class="bg-slate-950 text-slate-100 antialiased font-sans">
+    <script>
+      window.onerror = function(msg, url, line, col, error) {
+        document.body.innerHTML = "<div style='color: white; padding: 20px; background: red; z-index: 99999; position: relative;'><h1>GLOBAL SCRIPT ERROR</h1><p>" + msg + "</p><pre>" + (error && error.stack) + "</pre></div>";
+      };
+      window.addEventListener('unhandledrejection', function(event) {
+        document.body.innerHTML = "<div style='color: white; padding: 20px; background: red; z-index: 99999; position: relative;'><h1>UNHANDLED PROMISE REJECTION</h1><p>" + event.reason + "</p></div>";
+      });
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
