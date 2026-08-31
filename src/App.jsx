@@ -120,27 +120,57 @@ export default function App() {
 
   const selectedVillage = villages.find((v) => v.id === selectedVillageId) || villages[0] || null;
 
+  // Auto-dismiss success notifications after 5s; keep errors visible until dismissed
+  useEffect(() => {
+    if (notification && notification.type === "success") {
+      const timeoutId = setTimeout(() => setNotification(null), 5000);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [notification]);
+
   // Handle saving weights from modal
   const handleSaveWeights = async (priorityWeights, siteWeights) => {
     setSavingWeights(true);
+    const startTime = Date.now();
     try {
-      const success = await ApiService.updateWeights(priorityWeights, siteWeights);
-      if (success) {
-        setNotification({
-          type: "success",
-          message: "Weights updated successfully. Recalculating live priorities..."
+      const result = await ApiService.updateWeights(priorityWeights, siteWeights);
+
+      // Fetch recomputed villages AND updated site matches concurrently
+      const [villagesData, matchData] = await Promise.all([
+        ApiService.getVillages(
+          selectedDistrict === "All" ? undefined : selectedDistrict,
+          selectedCategory === "All" ? undefined : selectedCategory
+        ),
+        selectedVillageId
+          ? ApiService.getSiteMatches(selectedVillageId)
+          : Promise.resolve({ matches: [] })
+      ]);
+
+      const nextVillages = villagesData?.villages || [];
+      setVillages(nextVillages);
+      if (villagesData?.source) setDataSource(villagesData.source);
+      if (nextVillages.length > 0) {
+        setSelectedVillageId((prev) => {
+          const exists = nextVillages.some((v) => v.id === prev);
+          return exists ? prev : nextVillages[0].id;
         });
-        setIsWeightsModalOpen(false);
-        await loadVillages();
-        if (selectedVillageId) {
-          const data = await ApiService.getSiteMatches(selectedVillageId);
-          let matchesArray = data?.matches || [];
-          if (!Array.isArray(matchesArray) && typeof matchesArray === 'object') {
-            matchesArray = Object.values(matchesArray);
-          }
-          setSiteMatches(Array.isArray(matchesArray) ? matchesArray : []);
-        }
       }
+
+      let matchesArray = matchData?.matches || [];
+      if (!Array.isArray(matchesArray) && typeof matchesArray === "object") {
+        matchesArray = Object.values(matchesArray);
+      }
+      setSiteMatches(Array.isArray(matchesArray) ? matchesArray : []);
+
+      const elapsedMs = Date.now() - startTime;
+      const recomputed =
+        result?.villages_recomputed ?? nextVillages.length;
+
+      setNotification({
+        type: "success",
+        message: `Weights updated — ${recomputed} villages recomputed in ${elapsedMs} ms.`
+      });
+      setIsWeightsModalOpen(false);
     } catch (err) {
       console.error("Error updating weights:", err);
       setNotification({

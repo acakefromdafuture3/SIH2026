@@ -288,6 +288,56 @@ const weightsConfigData = {
   },
 };
 
+// ── Hero villages (Chamoli, Uttarakhand) — curated demo contrast pair ──────────
+const HERO_VILLAGES = [
+  {
+    id: "hero-chamoli-kalpeshwar",
+    name: "Kalpeshwar",
+    district: "Chamoli",
+    state: "Uttarakhand",
+    lat: 30.5225,
+    lng: 79.5400,
+    population: 1200,
+    elderly_pct: 28.5,
+    road_access: "poor",
+    hazard_score: 86,
+    hazard_factors: {
+      slope: 88,
+      rainfall: 82,
+      landslide_history: 90,
+      elevation: 80,
+    },
+    exposure_score: 82,
+    vulnerability_score: 78,
+    history_score: 85,
+    priority_score: null,
+    priority_category: null,
+  },
+  {
+    id: "hero-chamoli-devgram",
+    name: "Devgram",
+    district: "Chamoli",
+    state: "Uttarakhand",
+    lat: 30.5800,
+    lng: 79.6050,
+    population: 850,
+    elderly_pct: 18.0,
+    road_access: "moderate",
+    hazard_score: 35,
+    hazard_factors: {
+      slope: 32,
+      rainfall: 38,
+      landslide_history: 30,
+      elevation: 36,
+    },
+    exposure_score: 32,
+    vulnerability_score: 28,
+    history_score: 25,
+    priority_score: null,
+    priority_category: null,
+  },
+];
+
 /**
  * Seeds initial mock data into Firestore and cleans up obsolete documents.
  * @param {FirebaseFirestore.Firestore} db - Firestore instance
@@ -298,8 +348,11 @@ async function seedFirestore(db) {
     throw new Error("Firestore database instance must be provided.");
   }
 
+  // All villages to seed = base mock set + curated hero villages
+  const allVillages = [...villagesData, ...HERO_VILLAGES];
+
   // 0. Clean up obsolete documents
-  const validVillageIds = new Set(villagesData.map(v => v.id));
+  const validVillageIds = new Set(allVillages.map(v => v.id));
   const validSiteIds = new Set(relocationSitesData.map(s => s.id));
 
   const existingVillages = await db.collection("villages").get();
@@ -326,7 +379,7 @@ async function seedFirestore(db) {
   const batch = db.batch();
 
   // 1. Seed villages
-  for (const village of villagesData) {
+  for (const village of allVillages) {
     const { id, ...data } = village;
     const docRef = db.collection("villages").doc(id);
     batch.set(docRef, data, { merge: true });
@@ -346,7 +399,7 @@ async function seedFirestore(db) {
   await batch.commit();
 
   return {
-    villagesCount: villagesData.length,
+    villagesCount: allVillages.length,
     relocationSitesCount: relocationSitesData.length,
     configSeeded: true,
   };
@@ -408,6 +461,7 @@ if (require.main === module) {
 
 module.exports = {
   villagesData,
+  HERO_VILLAGES,
   relocationSitesData,
   weightsConfigData,
   seedFirestore,

@@ -24,6 +24,89 @@ setGlobalOptions({
 admin.initializeApp();
 const db = admin.firestore();
 
+// ─── Input validation helpers ──────────────────────────────────────────────────
+/**
+ * Validate a village document id.
+ * @param {*} villageId
+ * @returns {string} the validated villageId
+ */
+function validateVillageId(villageId) {
+  if (typeof villageId !== "string") {
+    throw new HttpsError("invalid-argument", "villageId must be a string.");
+  }
+  if (villageId.length < 3 || villageId.length > 128) {
+    throw new HttpsError(
+      "invalid-argument",
+      "villageId must be between 3 and 128 characters."
+    );
+  }
+  if (!/^[A-Za-z0-9_-]+$/.test(villageId)) {
+    throw new HttpsError(
+      "invalid-argument",
+      "villageId may only contain alphanumeric characters, hyphens and underscores."
+    );
+  }
+  return villageId;
+}
+
+/**
+ * Validate a district name.
+ * @param {*} district
+ * @returns {string} the trimmed, validated district
+ */
+function validateDistrict(district) {
+  if (typeof district !== "string") {
+    throw new HttpsError("invalid-argument", "district must be a string.");
+  }
+  const trimmed = district.trim();
+  if (trimmed.length < 2 || trimmed.length > 64) {
+    throw new HttpsError(
+      "invalid-argument",
+      "district must be between 2 and 64 characters."
+    );
+  }
+  return trimmed;
+}
+
+const PRIORITY_CATEGORIES = ["Immediate", "Short-term", "Medium-term", "Monitor"];
+
+/**
+ * Validate a priority category.
+ * @param {*} category
+ * @returns {string} the validated category
+ */
+function validatePriorityCategory(category) {
+  if (typeof category !== "string" || !PRIORITY_CATEGORIES.includes(category)) {
+    throw new HttpsError(
+      "invalid-argument",
+      `priority_category must be one of: ${PRIORITY_CATEGORIES.join(", ")}.`
+    );
+  }
+  return category;
+}
+
+/**
+ * Check that a lat/lng pair are numbers within India's bounding box.
+ * @param {*} lat @param {*} lng
+ * @returns {boolean} true if valid
+ */
+function isValidIndianCoordinate(lat, lng) {
+  if (typeof lat !== "number" || typeof lng !== "number" ||
+      Number.isNaN(lat) || Number.isNaN(lng)) {
+    throw new HttpsError(
+      "invalid-argument",
+      "Coordinates must be numbers."
+    );
+  }
+  if (lat < 6.0 || lat > 37.5 || lng < 68.0 || lng > 97.5) {
+    throw new HttpsError(
+      "invalid-argument",
+      `Coordinates (${lat}, ${lng}) are outside India bounds (lat 6.0–37.5, lng 68.0–97.5).`
+    );
+  }
+  return true;
+}
+
 // ─── Pure scoring engines ──────────────────────────────────────────────────────
 const { computePriorityScore, computeTopFactors } = require("./priorityEngine");
 const { computeSuitability }                       = require("./siteRanking");
@@ -145,11 +228,11 @@ exports.getVillages = onCall({ cors: true, invoker: "public" }, async (request) 
 
   let query = db.collection("villages");
 
-  if (district) {
-    query = query.where("district", "==", district);
+  if (district !== undefined && district !== null && district !== "") {
+    query = query.where("district", "==", validateDistrict(district));
   }
-  if (priority_category) {
-    query = query.where("priority_category", "==", priority_category);
+  if (priority_category !== undefined && priority_category !== null && priority_category !== "") {
+    query = query.where("priority_category", "==", validatePriorityCategory(priority_category));
   }
 
   const snapshot = await query.get();
@@ -174,6 +257,7 @@ exports.getVillageDetail = onCall({ cors: true, invoker: "public" }, async (requ
   if (!villageId) {
     throw new HttpsError("invalid-argument", "villageId is required.");
   }
+  validateVillageId(villageId);
 
   const villageSnap = await db.collection("villages").doc(villageId).get();
   if (!villageSnap.exists) {
@@ -207,6 +291,7 @@ exports.getSiteMatches = onCall({ cors: true, invoker: "public" }, async (reques
   if (!villageId) {
     throw new HttpsError("invalid-argument", "villageId is required.");
   }
+  validateVillageId(villageId);
 
   // Load village
   const villageSnap = await db.collection("villages").doc(villageId).get();
@@ -214,6 +299,9 @@ exports.getSiteMatches = onCall({ cors: true, invoker: "public" }, async (reques
     throw new HttpsError("not-found", `Village '${villageId}' not found.`);
   }
   const village = { id: villageSnap.id, ...villageSnap.data() };
+
+  // Guard against malformed village coordinates before distance math
+  isValidIndianCoordinate(village.lat, village.lng);
 
   // Load site_ranking weights
   const weightsDoc = await db.collection("config").doc("weights").get();
@@ -383,6 +471,25 @@ exports.healthCheck = onRequest({ cors: true, invoker: "public" }, (req, res) =>
 
 /** Seed Firestore from HTTP (emulator dev only) */
 exports.seedDatabase = onRequest({ cors: true, invoker: "public" }, async (req, res) => {
+  // ── Guard 1: only allowed in demo / dev environments ─────────────────────────
+  const env = process.env.ENVIRONMENT;
+  if (env !== "demo" && env !== "dev") {
+    logger.warn("[seedDatabase] blocked — ENVIRONMENT is not demo/dev", { env });
+    res.status(403).json({ error: "Seed endpoint disabled in production" });
+    return;
+  }
+
+  // ── Guard 2: bearer token check (only when SEED_TOKEN is configured) ─────────
+  const seedToken = process.env.SEED_TOKEN;
+  if (seedToken) {
+    const authHeader = req.get("authorization") || "";
+    if (authHeader !== `Bearer ${seedToken}`) {
+      logger.warn("[seedDatabase] blocked — missing or invalid authorization header");
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+  }
+
   try {
     const result = await seedFirestore(db);
     logger.info("Database seeded successfully", result);
