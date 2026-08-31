@@ -2,7 +2,7 @@
  * Seed Data for Firestore — Majuli District, Assam (SIH2026)
  *
  * Populates:
- *   1. villages (8 documents) — Majuli, Assam: 2 Immediate, 2 Short-term, 2 Medium-term, 2 Monitor
+ *   1. villages (10 documents) — Majuli, Assam: 8 baseline + 2 lopsided "hero" demo villages
  *   2. relocation_sites (3 documents) — High-plinth flood resettlement centers
  *   3. config/weights (1 document) — Singleton scoring weights
  *
@@ -288,51 +288,58 @@ const weightsConfigData = {
   },
 };
 
-// ── Hero villages (Chamoli, Uttarakhand) — curated demo contrast pair ──────────
+// ── Hero villages (Majuli, Assam) — deliberately lopsided demo contrast pair ────
+// Both sit mid-table under the default weights, but each is dominated by a single
+// pillar. Shifting the weight sliders swings their scores ~40+ points in opposite
+// directions and flips their ranking — a clear "what does the policy value?" demo.
 const HERO_VILLAGES = [
   {
-    id: "hero-chamoli-kalpeshwar",
-    name: "Kalpeshwar",
-    district: "Chamoli",
-    state: "Uttarakhand",
-    lat: 30.5225,
-    lng: 79.5400,
-    population: 1200,
-    elderly_pct: 28.5,
+    // HAZARD-DOMINANT: an active erosion spur with almost no recorded disaster
+    // history — extreme present-day physical risk, low everything else.
+    id: "hero-majuli-erosion-spur",
+    name: "Mock Bhakat Chapori Erosion Spur",
+    district: "Majuli",
+    state: "Assam",
+    lat: 26.9430,
+    lng: 94.2900,
+    population: 1750,
+    elderly_pct: 12.0,
     road_access: "poor",
-    hazard_score: 86,
+    hazard_score: 97,
     hazard_factors: {
-      slope: 88,
-      rainfall: 82,
+      slope: 96,
+      rainfall: 94,
       landslide_history: 90,
-      elevation: 80,
+      elevation: 95,
     },
-    exposure_score: 82,
-    vulnerability_score: 78,
-    history_score: 85,
+    exposure_score: 30,
+    vulnerability_score: 24,
+    history_score: 12,
     priority_score: null,
     priority_category: null,
   },
   {
-    id: "hero-chamoli-devgram",
-    name: "Devgram",
-    district: "Chamoli",
-    state: "Uttarakhand",
-    lat: 30.5800,
-    lng: 79.6050,
-    population: 850,
-    elderly_pct: 18.0,
+    // HISTORY-DOMINANT: repeatedly devastated by past embankment breaches, now
+    // shielded by a new spur dyke — low current hazard, catastrophic track record.
+    id: "hero-majuli-legacy-breach",
+    name: "Mock Kherkota Legacy Breach Village",
+    district: "Majuli",
+    state: "Assam",
+    lat: 27.0450,
+    lng: 94.1950,
+    population: 1400,
+    elderly_pct: 27.5,
     road_access: "moderate",
-    hazard_score: 35,
+    hazard_score: 18,
     hazard_factors: {
-      slope: 32,
-      rainfall: 38,
-      landslide_history: 30,
-      elevation: 36,
+      slope: 20,
+      rainfall: 35,
+      landslide_history: 40,
+      elevation: 25,
     },
-    exposure_score: 32,
+    exposure_score: 30,
     vulnerability_score: 28,
-    history_score: 25,
+    history_score: 96,
     priority_score: null,
     priority_category: null,
   },

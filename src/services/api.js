@@ -158,6 +158,11 @@ export const ApiService = {
         };
       }
     } catch (err) {
+      // A validation rejection (bad weights) won't be fixed by falling back to a
+      // local recompute — surface it so the UI can tell the user what's wrong.
+      if (err?.code === "functions/invalid-argument" || err?.code === "invalid-argument") {
+        throw new Error(err.message || "Invalid weights. Each group must sum to 100%.");
+      }
       console.warn("Live Firebase updateWeights unavailable, recomputing locally.", err.message);
     }
 
