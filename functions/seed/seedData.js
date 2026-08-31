@@ -2,7 +2,7 @@
  * Seed Data for Firestore — Majuli District, Assam (SIH2026)
  *
  * Populates:
- *   1. villages (8 documents) — Majuli, Assam: 2 Immediate, 2 Short-term, 2 Medium-term, 2 Monitor
+ *   1. villages (10 documents) — Majuli, Assam: 8 baseline + 2 lopsided "hero" demo villages
  *   2. relocation_sites (3 documents) — High-plinth flood resettlement centers
  *   3. config/weights (1 document) — Singleton scoring weights
  *
@@ -288,6 +288,63 @@ const weightsConfigData = {
   },
 };
 
+// ── Hero villages (Majuli, Assam) — deliberately lopsided demo contrast pair ────
+// Both sit mid-table under the default weights, but each is dominated by a single
+// pillar. Shifting the weight sliders swings their scores ~40+ points in opposite
+// directions and flips their ranking — a clear "what does the policy value?" demo.
+const HERO_VILLAGES = [
+  {
+    // HAZARD-DOMINANT: an active erosion spur with almost no recorded disaster
+    // history — extreme present-day physical risk, low everything else.
+    id: "hero-majuli-erosion-spur",
+    name: "Mock Bhakat Chapori Erosion Spur",
+    district: "Majuli",
+    state: "Assam",
+    lat: 26.9430,
+    lng: 94.2900,
+    population: 1750,
+    elderly_pct: 12.0,
+    road_access: "poor",
+    hazard_score: 97,
+    hazard_factors: {
+      slope: 96,
+      rainfall: 94,
+      landslide_history: 90,
+      elevation: 95,
+    },
+    exposure_score: 30,
+    vulnerability_score: 24,
+    history_score: 12,
+    priority_score: null,
+    priority_category: null,
+  },
+  {
+    // HISTORY-DOMINANT: repeatedly devastated by past embankment breaches, now
+    // shielded by a new spur dyke — low current hazard, catastrophic track record.
+    id: "hero-majuli-legacy-breach",
+    name: "Mock Kherkota Legacy Breach Village",
+    district: "Majuli",
+    state: "Assam",
+    lat: 27.0450,
+    lng: 94.1950,
+    population: 1400,
+    elderly_pct: 27.5,
+    road_access: "moderate",
+    hazard_score: 18,
+    hazard_factors: {
+      slope: 20,
+      rainfall: 35,
+      landslide_history: 40,
+      elevation: 25,
+    },
+    exposure_score: 30,
+    vulnerability_score: 28,
+    history_score: 96,
+    priority_score: null,
+    priority_category: null,
+  },
+];
+
 /**
  * Seeds initial mock data into Firestore and cleans up obsolete documents.
  * @param {FirebaseFirestore.Firestore} db - Firestore instance
@@ -298,8 +355,11 @@ async function seedFirestore(db) {
     throw new Error("Firestore database instance must be provided.");
   }
 
+  // All villages to seed = base mock set + curated hero villages
+  const allVillages = [...villagesData, ...HERO_VILLAGES];
+
   // 0. Clean up obsolete documents
-  const validVillageIds = new Set(villagesData.map(v => v.id));
+  const validVillageIds = new Set(allVillages.map(v => v.id));
   const validSiteIds = new Set(relocationSitesData.map(s => s.id));
 
   const existingVillages = await db.collection("villages").get();
@@ -326,7 +386,7 @@ async function seedFirestore(db) {
   const batch = db.batch();
 
   // 1. Seed villages
-  for (const village of villagesData) {
+  for (const village of allVillages) {
     const { id, ...data } = village;
     const docRef = db.collection("villages").doc(id);
     batch.set(docRef, data, { merge: true });
@@ -346,7 +406,7 @@ async function seedFirestore(db) {
   await batch.commit();
 
   return {
-    villagesCount: villagesData.length,
+    villagesCount: allVillages.length,
     relocationSitesCount: relocationSitesData.length,
     configSeeded: true,
   };
@@ -408,6 +468,7 @@ if (require.main === module) {
 
 module.exports = {
   villagesData,
+  HERO_VILLAGES,
   relocationSitesData,
   weightsConfigData,
   seedFirestore,

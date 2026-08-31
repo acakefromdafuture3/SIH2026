@@ -45,9 +45,25 @@ export default function WeightsModal({
     setSiteWeights(DEFAULT_WEIGHTS.site_ranking);
   };
 
+  // Backend requires each weight group to sum to exactly 1.0 — normalize before saving
+  const normalize = (weights) => {
+    const total = Object.values(weights).reduce((acc, curr) => acc + (parseFloat(curr) || 0), 0);
+    if (!total) return weights;
+    const entries = Object.entries(weights).map(([k, v]) => [k, (parseFloat(v) || 0) / total]);
+    // Round to 2 decimals, then fix any residual drift on the largest weight so the sum is exactly 1.0
+    const rounded = entries.map(([k, v]) => [k, parseFloat(v.toFixed(2))]);
+    const drift = parseFloat((1 - rounded.reduce((a, [, v]) => a + v, 0)).toFixed(2));
+    if (drift !== 0) {
+      let maxIdx = 0;
+      rounded.forEach(([, v], i) => { if (v > rounded[maxIdx][1]) maxIdx = i; });
+      rounded[maxIdx][1] = parseFloat((rounded[maxIdx][1] + drift).toFixed(2));
+    }
+    return Object.fromEntries(rounded);
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSaveWeights(priorityWeights, siteWeights);
+    onSaveWeights(normalize(priorityWeights), normalize(siteWeights));
   };
 
   return (

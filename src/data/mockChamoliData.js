@@ -324,6 +324,68 @@ export const MOCK_VILLAGES = [
       { factor: "elevation", contribution: 18 }
     ],
     recommended_site_id: "mock-site-majuli-02"
+  },
+
+  // ── HERO DEMO VILLAGES (lopsided profiles — show large swings on reweighting) ──
+  {
+    // HAZARD-DOMINANT: extreme present-day erosion risk, almost no disaster history
+    id: "hero-majuli-erosion-spur",
+    name: "Mock Bhakat Chapori Erosion Spur",
+    district: "Majuli",
+    state: "Assam",
+    lat: 26.9430,
+    lng: 94.2900,
+    population: 1750,
+    elderly_pct: 12.0,
+    road_access: "poor",
+    hazard_score: 97,
+    hazard_factors: {
+      slope: 96,
+      rainfall: 94,
+      landslide_history: 90,
+      elevation: 95
+    },
+    exposure_score: 30,
+    vulnerability_score: 24,
+    history_score: 12,
+    priority_score: 48.65,
+    priority_category: "Medium-term",
+    top_factors: [
+      { factor: "slope", contribution: 96 },
+      { factor: "elevation", contribution: 95 },
+      { factor: "rainfall", contribution: 94 }
+    ],
+    recommended_site_id: "mock-site-majuli-02"
+  },
+  {
+    // HISTORY-DOMINANT: catastrophic breach record, low current hazard (new dyke)
+    id: "hero-majuli-legacy-breach",
+    name: "Mock Kherkota Legacy Breach Village",
+    district: "Majuli",
+    state: "Assam",
+    lat: 27.0450,
+    lng: 94.1950,
+    population: 1400,
+    elderly_pct: 27.5,
+    road_access: "moderate",
+    hazard_score: 18,
+    hazard_factors: {
+      slope: 20,
+      rainfall: 35,
+      landslide_history: 40,
+      elevation: 25
+    },
+    exposure_score: 30,
+    vulnerability_score: 28,
+    history_score: 96,
+    priority_score: 38.60,
+    priority_category: "Medium-term",
+    top_factors: [
+      { factor: "landslide_history", contribution: 40 },
+      { factor: "rainfall", contribution: 35 },
+      { factor: "elevation", contribution: 25 }
+    ],
+    recommended_site_id: "mock-site-majuli-01"
   }
 ];
 
