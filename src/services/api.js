@@ -15,6 +15,47 @@ import {
 let currentVillages = [...MOCK_VILLAGES];
 let currentWeights = JSON.parse(JSON.stringify(DEFAULT_WEIGHTS));
 
+/**
+ * Normalize relocation-site match data into a consistent array shape,
+ * regardless of whether the backend returns an array or a keyed object.
+ * Only items with a string site_id, numeric suitability_score and numeric
+ * distance_km are kept.
+ * @param {*} raw
+ * @returns {Array}
+ */
+export function validateSiteMatches(raw) {
+  if (raw === null || raw === undefined) {
+    return [];
+  }
+
+  const hasRequiredFields = (item) =>
+    item &&
+    typeof item.site_id === "string" &&
+    typeof item.suitability_score === "number" &&
+    typeof item.distance_km === "number";
+
+  let candidates;
+  if (Array.isArray(raw)) {
+    candidates = raw;
+  } else if (typeof raw === "object") {
+    candidates = Object.entries(raw).map(([key, value]) => ({
+      site_id: value && typeof value.site_id === "string" ? value.site_id : key,
+      ...value
+    }));
+  } else {
+    console.warn("validateSiteMatches: unexpected input type, returning empty array.", raw);
+    return [];
+  }
+
+  return candidates.filter((item) => {
+    if (!hasRequiredFields(item)) {
+      console.warn("validateSiteMatches: dropping item missing required fields.", item);
+      return false;
+    }
+    return true;
+  });
+}
+
 export const ApiService = {
   /**
    * Fetch list of villages with optional district and priority_category filtering
@@ -88,17 +129,19 @@ export const ApiService = {
       if (response && response.matches) {
         return {
           source: "live_firebase",
-          ...response
+          village_id: response.village_id || villageId,
+          matches: validateSiteMatches(response.matches)
         };
       }
     } catch (err) {
       console.warn("Live Firebase getSiteMatches unavailable, computing local matches.", err.message);
     }
 
-    const matchData = getMockMatchesForVillage(villageId, currentWeights.site_ranking);
+    const matchData = getMockMatchesForVillage(villageId, currentWeights.site_ranking) || {};
     return {
       source: "local_dataset",
-      ...matchData
+      village_id: matchData.village_id || villageId,
+      matches: validateSiteMatches(matchData.matches)
     };
   },
 
