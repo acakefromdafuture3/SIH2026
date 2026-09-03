@@ -89,8 +89,8 @@ async function run() {
 
   const seed = await httpGet("/seedDatabase");
   assert(seed.status === 200, "seedDatabase returns 200");
-  assert(seed.body.villagesCount === 8,  `seeded 8 villages (got ${seed.body.villagesCount})`);
-  assert(seed.body.relocationSitesCount === 3, `seeded 3 sites (got ${seed.body.relocationSitesCount})`);
+  assert(seed.body.villagesCount === 10, `seeded 10 villages (got ${seed.body.villagesCount})`);
+  assert(seed.body.relocationSitesCount === 4, `seeded 4 sites (got ${seed.body.relocationSitesCount})`);
 
   // Give the recomputePriority trigger time to fire on each village write
   console.log("\n  ⏳ Waiting 8 s for recomputePriority triggers to settle...");
@@ -101,20 +101,43 @@ async function run() {
 
   const gv = await callFn("getVillages", {});
   assert(Array.isArray(gv.villages), "returns villages array");
-  assert(gv.villages.length === 8, `8 villages returned (got ${gv.villages.length})`);
+  assert(gv.villages.length === 10, `10 villages returned (got ${gv.villages.length})`);
 
   // Should be sorted priority_score descending
   const scores = gv.villages.map((v) => v.priority_score);
   const isSorted = scores.every((s, i) => i === 0 || s <= scores[i - 1]);
   assert(isSorted, "villages sorted by priority_score descending", JSON.stringify(scores));
 
-  // Each village should have had priority_score written by the trigger
-  const triggered = gv.villages.every((v) => v.priority_score > 0);
-  assert(triggered, "all villages have priority_score > 0 (trigger fired)");
+  // Every village must carry a usable, numeric priority_score. This is the core
+  // guarantee: seed precomputes it, the trigger maintains it, and getVillages
+  // self-heals anything that slipped through — so the dashboard can never show 0.
+  const VALID_CATEGORIES = ["Immediate", "Short-term", "Medium-term", "Monitor"];
+  const scored = gv.villages.every(
+    (v) => typeof v.priority_score === "number" && Number.isFinite(v.priority_score) && v.priority_score > 0
+  );
+  assert(scored, "all villages have a finite priority_score > 0");
+  const categorised = gv.villages.every((v) => VALID_CATEGORIES.includes(v.priority_category));
+  assert(categorised, "all villages have a valid priority_category");
+  const withFactors = gv.villages.every((v) => Array.isArray(v.top_factors) && v.top_factors.length > 0);
+  assert(withFactors, "all villages have top_factors populated");
+
+  // ── 1b. recomputeAllPriorities (idempotent self-repair endpoint) ──────────
+  section("1b. recomputeAllPriorities");
+
+  const rc = await callFn("recomputeAllPriorities", {});
+  assert(
+    rc.villages_recomputed === gv.villages.length,
+    `recomputeAllPriorities recomputed all ${gv.villages.length} villages (got ${rc.villages_recomputed})`
+  );
+  const gvAfterRc = await callFn("getVillages", {});
+  assert(
+    gvAfterRc.villages.every((v) => Number.isFinite(v.priority_score) && v.priority_score > 0),
+    "every village still scored after recomputeAllPriorities"
+  );
 
   // District filter
-  const gvDistrict = await callFn("getVillages", { district: "Chamoli" });
-  assert(gvDistrict.villages.length === 8, "district=Chamoli filter returns 8");
+  const gvDistrict = await callFn("getVillages", { district: "Majuli" });
+  assert(gvDistrict.villages.length === 10, "district=Majuli filter returns 10");
 
   // Category filter — at least 2 Immediate villages seeded
   const gvImmediate = await callFn("getVillages", { priority_category: "Immediate" });
@@ -153,7 +176,7 @@ async function run() {
   const gsm = await callFn("getSiteMatches", { villageId: sampleVillageId });
   assert(gsm.village_id === sampleVillageId, "village_id echoed correctly");
   assert(Array.isArray(gsm.matches), "matches is an array");
-  assert(gsm.matches.length === 3, `3 site matches returned (got ${gsm.matches.length})`);
+  assert(gsm.matches.length === 4, `4 site matches returned (got ${gsm.matches.length})`);
 
   // Sorted descending by suitability
   const suitScores = gsm.matches.map((m) => m.suitability_score);
@@ -174,7 +197,7 @@ async function run() {
 
   const monitorVillage = gvMonitor.villages[0];
   const gsmMonitor = await callFn("getSiteMatches", { villageId: monitorVillage.id });
-  assert(gsmMonitor.matches.length === 3, `Monitor village also gets 3 matches (got ${gsmMonitor.matches.length})`);
+  assert(gsmMonitor.matches.length === 4, `Monitor village also gets 4 matches (got ${gsmMonitor.matches.length})`);
   console.log(`  ℹ  Monitor village "${monitorVillage.name}" — top match: "${gsmMonitor.matches[0].site_name}" suitability=${gsmMonitor.matches[0].suitability_score}`);
 
   // ── 5. updateWeights ─────────────────────────────────────────────────────
@@ -183,7 +206,7 @@ async function run() {
   // Shift slightly more weight onto hazard
   const newPriorityWeights = { hazard: 0.40, exposure: 0.25, vulnerability: 0.20, history: 0.15 };
   const uw = await callFn("updateWeights", { priority: newPriorityWeights });
-  assert(uw.villages_recomputed === 8, `recomputed all 8 villages (got ${uw.villages_recomputed})`);
+  assert(uw.villages_recomputed === 10, `recomputed all 10 villages (got ${uw.villages_recomputed})`);
   assert(uw.new_weights.priority.hazard === 0.40, "new hazard weight saved correctly");
 
   // Fetch villages again — top Immediate village score should have changed

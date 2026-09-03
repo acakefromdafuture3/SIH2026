@@ -125,9 +125,47 @@ export async function updateScoringWeights(newPriorityWeights, newSiteWeights) {
     site_ranking: newSiteWeights  // e.g. { safety: 0.40, capacity: 0.20, infrastructure: 0.15, accessibility: 0.10, water: 0.10, distance: 0.05 }
   });
 
-  return result.data; // { message: "...", new_weights: {...}, villages_recomputed: 8 }
+  return result.data; // { message: "...", new_weights: {...}, villages_recomputed: 10 }
 }
 ```
+
+---
+
+### E. `recomputeAllPriorities`
+
+Idempotent self-repair endpoint. Recomputes `priority_score` / `priority_category` /
+`top_factors` for **every** village from the current `config/weights`, without
+changing any weights. Takes no params.
+
+```javascript
+export async function recomputeAllPriorities() {
+  const recomputeFn = httpsCallable(functions, "recomputeAllPriorities");
+  const result = await recomputeFn({});
+  return result.data; // { message: "...", villages_recomputed: 10 }
+}
+```
+
+The dashboard calls this automatically (once per page load) if `getVillages`
+ever returns a village without a computed score. You can also run it manually
+after a fresh seed, or from `functions/seed/smokeTest.js`.
+
+---
+
+### Priority-score safety net (why the dashboard never shows 0)
+
+`priority_score` / `priority_category` are defended at four layers, so a village
+can never reach the UI unscored:
+
+1. **Seed** (`functions/seed/seedData.js`) precomputes the values before writing.
+2. **`recomputePriority`** Firestore trigger keeps them fresh on every write.
+3. **`getVillages` / `getVillageDetail`** back-fill (and persist) any doc that is
+   still missing a score at read time.
+4. **Frontend** (`src/utils/priority.js` via `ApiService`) recomputes client-side
+   from the active weights as a last resort, and fires `recomputeAllPriorities`
+   to repair the database.
+
+If you ever see 0 scores: run `npm --prefix functions run test:live` (calls
+`updateWeights` + `recomputeAllPriorities`) or click **Policy Weights → Apply**.
 
 ---
 

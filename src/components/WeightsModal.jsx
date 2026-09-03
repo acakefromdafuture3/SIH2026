@@ -1,12 +1,18 @@
 import React, { useState } from "react";
-import { X, Sliders, CheckCircle2, RotateCcw, AlertTriangle, Sparkles } from "lucide-react";
+import { X, Sliders, CheckCircle2, RotateCcw, AlertTriangle, Sparkles, Zap } from "lucide-react";
 import { DEFAULT_WEIGHTS } from "../data/mockChamoliData";
+import {
+  PRIORITY_WEIGHT_PRESETS,
+  SITE_WEIGHT_PRESETS,
+  matchPresetId
+} from "../constants/weightPresets";
 
 export default function WeightsModal({
   isOpen,
   onClose,
   initialWeights,
   onSaveWeights,
+  onPreviewWeights,
   saving
 }) {
   const [priorityWeights, setPriorityWeights] = useState(
@@ -18,6 +24,16 @@ export default function WeightsModal({
 
   if (!isOpen) return null;
 
+  const activePriorityPreset = matchPresetId(PRIORITY_WEIGHT_PRESETS, priorityWeights);
+  const activeSitePreset = matchPresetId(SITE_WEIGHT_PRESETS, siteWeights);
+
+  // Set priority weights AND push a live client-side preview so the village
+  // rankings behind the modal re-sort immediately (no backend round-trip).
+  const applyPriorityWeights = (next) => {
+    setPriorityWeights(next);
+    onPreviewWeights?.(next);
+  };
+
   const prioritySum = Math.round(
     Object.values(priorityWeights).reduce((acc, curr) => acc + (parseFloat(curr) || 0), 0) * 100
   );
@@ -27,10 +43,10 @@ export default function WeightsModal({
   );
 
   const handlePriorityChange = (key, val) => {
-    setPriorityWeights((prev) => ({
-      ...prev,
+    applyPriorityWeights({
+      ...priorityWeights,
       [key]: parseFloat((parseFloat(val) / 100).toFixed(2))
-    }));
+    });
   };
 
   const handleSiteChange = (key, val) => {
@@ -41,7 +57,7 @@ export default function WeightsModal({
   };
 
   const handleReset = () => {
-    setPriorityWeights(DEFAULT_WEIGHTS.priority);
+    applyPriorityWeights(DEFAULT_WEIGHTS.priority);
     setSiteWeights(DEFAULT_WEIGHTS.site_ranking);
   };
 
@@ -117,6 +133,35 @@ export default function WeightsModal({
               </div>
             </div>
 
+            {/* Quick preset profiles — snap the sliders & re-rank the list live */}
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
+                <Zap className="w-3 h-3 text-cyan-400" />
+                <span>Quick profiles</span>
+                <span className="text-slate-600">— rankings on the left update instantly</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {PRIORITY_WEIGHT_PRESETS.map((preset) => {
+                  const active = activePriorityPreset === preset.id;
+                  return (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() => applyPriorityWeights(preset.weights)}
+                      title={preset.description}
+                      className={`px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border transition-all cursor-pointer ${
+                        active
+                          ? "bg-cyan-500/20 text-cyan-200 border-cyan-500/50 ring-1 ring-cyan-400/40"
+                          : "bg-slate-800/60 text-slate-300 border-slate-700 hover:bg-slate-800 hover:text-white"
+                      }`}
+                    >
+                      {preset.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {[
                 { key: "hazard", label: "Hazard Index (Slope, Rainfall, History)", color: "text-rose-400" },
@@ -163,6 +208,35 @@ export default function WeightsModal({
                 >
                   {siteSum}% {siteSum === 100 ? "✓" : "≠ 100%"}
                 </span>
+              </div>
+            </div>
+
+            {/* Quick preset profiles for site ranking */}
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
+                <Zap className="w-3 h-3 text-cyan-400" />
+                <span>Quick profiles</span>
+                <span className="text-slate-600">— applied when you save</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {SITE_WEIGHT_PRESETS.map((preset) => {
+                  const active = activeSitePreset === preset.id;
+                  return (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() => setSiteWeights(preset.weights)}
+                      title={preset.description}
+                      className={`px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border transition-all cursor-pointer ${
+                        active
+                          ? "bg-cyan-500/20 text-cyan-200 border-cyan-500/50 ring-1 ring-cyan-400/40"
+                          : "bg-slate-800/60 text-slate-300 border-slate-700 hover:bg-slate-800 hover:text-white"
+                      }`}
+                    >
+                      {preset.label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 

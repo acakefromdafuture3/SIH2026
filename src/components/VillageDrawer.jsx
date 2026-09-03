@@ -87,8 +87,9 @@ export default function VillageDrawer({
 }) {
   if (!village) return null;
 
-  const categoryColor = PIN_COLORS[village.priority_category] || "#10B981";
-  
+  const priorityCategory = village.priority_category || "Monitor";
+  const categoryColor = PIN_COLORS[priorityCategory] || "#10B981";
+
   // Format factor labels nicely
   const formatFactorLabel = (factorKey) => {
     const labels = {
@@ -151,7 +152,7 @@ export default function VillageDrawer({
                 className="text-[10px] uppercase font-black tracking-widest px-2.5 py-0.5 rounded shadow-sm text-white"
                 style={{ backgroundColor: categoryColor }}
               >
-                {village.priority_category} Priority
+                {priorityCategory} Priority
               </span>
               <span className="text-xs font-mono text-slate-400">
                 ID: {village.id}
