@@ -6,6 +6,7 @@ import { functions } from "../firebase";
 import { ApiService } from "../services/api";
 
 import { PIN_COLORS } from "../constants/theme";
+import { ensureVillagesPriority, formatScore } from "../utils/priority";
 
 /**
  * Creates a circular SVG Leaflet DivIcon with exact color coding and pulse animation for Immediate category
@@ -114,7 +115,8 @@ export default function MapPins({
         });
 
         if (isMounted && result?.data?.villages) {
-          setVillages(result.data.villages);
+          const priorityWeights = ApiService.getWeights()?.priority;
+          setVillages(ensureVillagesPriority(result.data.villages, priorityWeights));
         }
       } catch (err) {
         console.warn("Firebase getVillages onCall fallback:", err.message);
@@ -175,7 +177,7 @@ export default function MapPins({
                     className="text-[10px] uppercase font-bold px-2 py-0.5 rounded text-white shadow-sm flex-shrink-0"
                     style={{ backgroundColor: categoryColor }}
                   >
-                    {village.priority_category}
+                    {village.priority_category || "Monitor"}
                   </span>
                 </div>
 
@@ -184,7 +186,7 @@ export default function MapPins({
                   <div>
                     <span className="text-slate-400 block text-[10px]">Priority Score</span>
                     <strong className="text-rose-400 font-mono text-sm">
-                      {village.priority_score}
+                      {formatScore(village.priority_score)}
                     </strong>
                   </div>
                   <div>

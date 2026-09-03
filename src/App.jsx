@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import Navbar from "./components/Navbar";
 import StatsOverview from "./components/StatsOverview";
 import VillageList from "./components/VillageList";
@@ -8,6 +8,7 @@ import VillageDrawer from "./components/VillageDrawer";
 import SiteMatchList from "./components/SiteMatchList";
 import WeightsModal from "./components/WeightsModal";
 import { ApiService } from "./services/api";
+import { computePriorityScore, normalizeWeights } from "./utils/priority";
 import {
   Map,
   List,
@@ -35,6 +36,10 @@ export default function App() {
   const [dataSource, setDataSource] = useState("local_dataset");
 
   const [isWeightsModalOpen, setIsWeightsModalOpen] = useState(false);
+  // Live, client-side "what-if" priority weights driven by the Weights modal.
+  // Non-null => the village list / map / stats show provisional re-ranked scores
+  // without any backend write, until the user hits Apply or closes the modal.
+  const [previewPriorityWeights, setPreviewPriorityWeights] = useState(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [savingWeights, setSavingWeights] = useState(false);
   const [notification, setNotification] = useState(null);
@@ -118,7 +123,19 @@ export default function App() {
     };
   }, [selectedVillageId, isWeightsModalOpen]);
 
-  const selectedVillage = villages.find((v) => v.id === selectedVillageId) || villages[0] || null;
+  // Villages as shown in the UI. When a weight preview is active, recompute
+  // priority_score / priority_category locally (same formula as the backend) and
+  // re-sort — so the Priority Ranking Matrix visibly swings as weights change.
+  const displayedVillages = useMemo(() => {
+    if (!previewPriorityWeights) return villages;
+    const w = normalizeWeights(previewPriorityWeights);
+    return villages
+      .map((v) => ({ ...v, ...computePriorityScore(v, w) }))
+      .sort((a, b) => (b.priority_score || 0) - (a.priority_score || 0));
+  }, [villages, previewPriorityWeights]);
+
+  const selectedVillage =
+    displayedVillages.find((v) => v.id === selectedVillageId) || displayedVillages[0] || null;
 
   // Auto-dismiss success notifications after 5s; keep errors visible until dismissed
   useEffect(() => {
@@ -179,6 +196,9 @@ export default function App() {
       });
     } finally {
       setSavingWeights(false);
+      // The committed villages now reflect the new weights (or the save failed
+      // and nothing changed) — either way the provisional preview is done.
+      setPreviewPriorityWeights(null);
     }
   };
 
@@ -189,7 +209,7 @@ export default function App() {
     }
   };
 
-  const immediateCount = villages.filter((v) => v.priority_category === "Immediate").length;
+  const immediateCount = displayedVillages.filter((v) => v.priority_category === "Immediate").length;
   const topMatch = siteMatches[0] || null;
 
   return (
@@ -290,7 +310,7 @@ export default function App() {
         )}
 
         {/* Top Summary Metrics */}
-        <StatsOverview villages={villages} sites={sites} />
+        <StatsOverview villages={displayedVillages} sites={sites} />
 
         {/* Mobile View Toggle Bar */}
         <div className="lg:hidden flex bg-slate-900/90 border border-slate-800 rounded-2xl p-1.5 gap-1.5 shadow-lg">
@@ -314,7 +334,7 @@ export default function App() {
             }`}
           >
             <List className="w-3.5 h-3.5" />
-            Rankings ({villages.length})
+            Rankings ({displayedVillages.length})
           </button>
           <button
             onClick={() => setMobileTab("detail")}
@@ -334,7 +354,7 @@ export default function App() {
           {/* Left Column: Priority Matrix Village Rankings (4 Cols) */}
           <div className="col-span-4 h-[660px]">
             <VillageList
-              villages={villages}
+              villages={displayedVillages}
               selectedVillageId={selectedVillageId}
               onSelectVillage={handleSelectVillage}
               selectedCategory={selectedCategory}
@@ -401,7 +421,7 @@ export default function App() {
             {commandTab === "map" && (
               <div className="flex-1 relative rounded-2xl overflow-hidden h-full">
                 <MapView
-                  villages={villages}
+                  villages={displayedVillages}
                   sites={sites}
                   selectedVillage={selectedVillage}
                   onSelectVillage={handleSelectVillage}
@@ -494,7 +514,7 @@ export default function App() {
           {mobileTab === "map" && (
             <div className="h-full relative rounded-2xl overflow-hidden">
               <MapView
-                villages={villages}
+                villages={displayedVillages}
                 sites={sites}
                 selectedVillage={selectedVillage}
                 onSelectVillage={handleSelectVillage}
@@ -506,7 +526,7 @@ export default function App() {
           {mobileTab === "list" && (
             <div className="h-full">
               <VillageList
-                villages={villages}
+                villages={displayedVillages}
                 selectedVillageId={selectedVillageId}
                 onSelectVillage={handleSelectVillage}
                 selectedCategory={selectedCategory}
@@ -545,9 +565,13 @@ export default function App() {
       {/* Scoring Weights Calibration Modal */}
       <WeightsModal
         isOpen={isWeightsModalOpen}
-        onClose={() => setIsWeightsModalOpen(false)}
+        onClose={() => {
+          setIsWeightsModalOpen(false);
+          setPreviewPriorityWeights(null); // discard the live preview on cancel
+        }}
         initialWeights={ApiService.getWeights()}
         onSaveWeights={handleSaveWeights}
+        onPreviewWeights={setPreviewPriorityWeights}
         saving={savingWeights}
       />
 

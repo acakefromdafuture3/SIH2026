@@ -2,7 +2,8 @@ import {
   fetchVillages as fbFetchVillages,
   fetchVillageDetail as fbFetchVillageDetail,
   fetchSiteMatches as fbFetchSiteMatches,
-  updateScoringWeights as fbUpdateWeights
+  updateScoringWeights as fbUpdateWeights,
+  recomputeAllPriorities as fbRecomputeAllPriorities
 } from "../firebase";
 import {
   MOCK_VILLAGES,
@@ -10,10 +11,36 @@ import {
   DEFAULT_WEIGHTS,
   getMockMatchesForVillage
 } from "../data/mockChamoliData";
+import {
+  computePriorityScore,
+  ensureVillagePriority,
+  ensureVillagesPriority
+} from "../utils/priority";
 
 // In-memory state for local fallback simulation
 let currentVillages = [...MOCK_VILLAGES];
 let currentWeights = JSON.parse(JSON.stringify(DEFAULT_WEIGHTS));
+
+// Fire the backend self-repair at most once per page load, so a stale Firestore
+// (villages seeded but never scored) gets permanently fixed without hammering it.
+let backendHealRequested = false;
+
+function requestBackendHeal(reason) {
+  if (backendHealRequested) return;
+  backendHealRequested = true;
+  console.warn(`[ApiService] ${reason} — requesting one-time backend priority recompute.`);
+  Promise.resolve()
+    .then(() => fbRecomputeAllPriorities())
+    .then((res) => {
+      if (res && typeof res.villages_recomputed === "number") {
+        console.info(`[ApiService] backend recomputed ${res.villages_recomputed} villages.`);
+      }
+    })
+    .catch((err) => {
+      // Non-fatal: the client-side heal already made the UI correct.
+      console.warn("[ApiService] backend recompute unavailable:", err?.message || err);
+    });
+}
 
 /**
  * Normalize relocation-site match data into a consistent array shape,
@@ -64,10 +91,18 @@ export const ApiService = {
     try {
       const response = await fbFetchVillages(district, priorityCategory);
       if (response && response.villages) {
+        // Guarantee every record has a usable priority_score / priority_category
+        // even if the backend returned nulls (unseeded scores, stale deploy…).
+        const healed = ensureVillagesPriority(response.villages, currentWeights.priority);
+        const healedCount = healed.filter((v) => v.priority_healed).length;
+        if (healedCount > 0) {
+          requestBackendHeal(`getVillages returned ${healedCount} village(s) without a priority score`);
+        }
+        healed.sort((a, b) => (b.priority_score || 0) - (a.priority_score || 0));
         return {
-          source: "live_firebase",
-          count: response.count || response.villages.length,
-          villages: response.villages
+          source: healedCount > 0 ? "live_firebase_healed" : "live_firebase",
+          count: response.count || healed.length,
+          villages: healed
         };
       }
     } catch (err) {
@@ -104,9 +139,13 @@ export const ApiService = {
     try {
       const village = await fbFetchVillageDetail(villageId);
       if (village) {
+        const healed = ensureVillagePriority(village, currentWeights.priority);
+        if (healed.priority_healed) {
+          requestBackendHeal(`getVillageDetail(${villageId}) had no priority score`);
+        }
         return {
-          source: "live_firebase",
-          village
+          source: healed.priority_healed ? "live_firebase_healed" : "live_firebase",
+          village: healed
         };
       }
     } catch (err) {
@@ -173,27 +212,12 @@ export const ApiService = {
       currentWeights.site_ranking = { ...currentWeights.site_ranking, ...newSiteWeights };
     }
 
-    // Recalculate priority scores for all villages locally
-    currentVillages = currentVillages.map((v) => {
-      const pw = currentWeights.priority;
-      const hazardPart = (v.hazard_score || 50) * pw.hazard;
-      const exposurePart = (v.exposure_score || 50) * pw.exposure;
-      const vulnPart = (v.vulnerability_score || 50) * pw.vulnerability;
-      const histPart = (v.history_score || 50) * pw.history;
-
-      const priority_score = parseFloat((hazardPart + exposurePart + vulnPart + histPart).toFixed(2));
-
-      let priority_category = "Monitor";
-      if (priority_score >= 71) priority_category = "Immediate";
-      else if (priority_score >= 51) priority_category = "Short-term";
-      else if (priority_score >= 31) priority_category = "Medium-term";
-
-      return {
-        ...v,
-        priority_score,
-        priority_category
-      };
-    });
+    // Recalculate priority scores for all villages locally, using the exact same
+    // formula and thresholds as the backend (functions/priorityEngine.js).
+    currentVillages = currentVillages.map((v) => ({
+      ...v,
+      ...computePriorityScore(v, currentWeights.priority)
+    }));
 
     return {
       source: "local_dataset",

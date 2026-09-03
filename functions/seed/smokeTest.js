@@ -55,16 +55,32 @@ async function runSmokeTest() {
   });
   console.log(`✅ Success! ${updateResult.message}`);
 
+  // 1b. Idempotent self-repair endpoint
+  console.log("\n1b. Calling live recomputeAllPriorities()...");
+  const recomputeResult = await callLiveFunction("recomputeAllPriorities", {});
+  console.log(`✅ Success! ${recomputeResult.message}`);
+
   // 2. Test getVillages (All villages)
   console.log("\n2. Calling live getVillages()...");
   const villagesResult = await callLiveFunction("getVillages", {});
   console.log(`✅ Success! Retrieved ${villagesResult.count} villages from live Firestore:`);
-  
+
   villagesResult.villages.forEach((v, index) => {
     console.log(
       `  [${index + 1}] ${v.name.padEnd(26)} | Score: ${String(v.priority_score).padEnd(5)} | Category: ${(v.priority_category || "Pending").padEnd(12)} | Pop: ${v.population}`
     );
   });
+
+  // Assert none came back unscored — the bug this safety net exists to prevent.
+  const unscored = villagesResult.villages.filter(
+    (v) => typeof v.priority_score !== "number" || !Number.isFinite(v.priority_score) || !v.priority_category
+  );
+  if (unscored.length > 0) {
+    throw new Error(
+      `${unscored.length} village(s) returned without a priority score: ${unscored.map((v) => v.id).join(", ")}`
+    );
+  }
+  console.log("✅ All villages have a numeric priority_score and category.");
 
   // 3. Test getVillages with Filter
   console.log("\n3. Calling live getVillages({ priority_category: 'Immediate' })...");

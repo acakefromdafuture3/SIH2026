@@ -1,5 +1,6 @@
 import React from "react";
 import { AlertOctagon, Users, Flame, ShieldCheck, Activity, TrendingUp } from "lucide-react";
+import { formatScore } from "../utils/priority";
 
 export default function StatsOverview({ villages, sites }) {
   const immediateVillages = villages.filter((v) => v.priority_category === "Immediate");
@@ -86,7 +87,7 @@ export default function StatsOverview({ villages, sites }) {
               {highestPriorityVillage?.name || "N/A"}
             </span>
             <span className="text-xs font-black text-rose-400 font-mono bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20">
-              {highestPriorityVillage?.priority_score} pts
+              {formatScore(highestPriorityVillage?.priority_score)} pts
             </span>
           </div>
           <p className="text-[11px] text-slate-400 mt-2 truncate">
