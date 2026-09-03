@@ -51,3 +51,14 @@ export async function updateScoringWeights(newPriorityWeights, newSiteWeights) {
   });
   return result.data;
 }
+
+/**
+ * Ask the backend to recompute priority_score / priority_category / top_factors
+ * for every village from the current config/weights. Used as a self-repair path
+ * when the dashboard detects villages served without a score.
+ */
+export async function recomputeAllPriorities() {
+  const recomputeFn = httpsCallable(functions, "recomputeAllPriorities");
+  const result = await recomputeFn({});
+  return result.data;
+}

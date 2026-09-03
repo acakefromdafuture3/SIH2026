@@ -142,6 +142,13 @@ function haversineKm(lat1, lng1, lat2, lng2) {
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
+const DEFAULT_PRIORITY_WEIGHTS = Object.freeze({
+  hazard: 0.35,
+  exposure: 0.25,
+  vulnerability: 0.20,
+  history: 0.20,
+});
+
 async function getWeights() {
   const snap = await db.collection("config").doc("weights").get();
   if (!snap.exists) {
@@ -151,6 +158,102 @@ async function getWeights() {
     );
   }
   return snap.data();
+}
+
+/**
+ * Load the priority weights, never throwing — falls back to defaults so scoring
+ * always has something usable.
+ * @returns {Promise<Object>}
+ */
+async function resolvePriorityWeights() {
+  try {
+    const snap = await db.collection("config").doc("weights").get();
+    const priority = snap.exists ? snap.data().priority : null;
+    if (priority && typeof priority === "object") return priority;
+  } catch (err) {
+    logger.warn("[resolvePriorityWeights] falling back to defaults", err);
+  }
+  return { ...DEFAULT_PRIORITY_WEIGHTS };
+}
+
+/**
+ * True when a village doc already carries a usable priority_score + category.
+ * @param {Object} village
+ * @returns {boolean}
+ */
+function hasComputedPriority(village) {
+  return (
+    village &&
+    typeof village.priority_score === "number" &&
+    Number.isFinite(village.priority_score) &&
+    PRIORITY_CATEGORIES.includes(village.priority_category)
+  );
+}
+
+/**
+ * Fill in priority_score / priority_category / top_factors on a village object
+ * in place, using the supplied weights. Returns true if anything was added.
+ * @param {Object} village
+ * @param {Object} weights
+ * @returns {boolean} whether the village was mutated
+ */
+function backfillPriority(village, weights) {
+  if (hasComputedPriority(village) &&
+      Array.isArray(village.top_factors) && village.top_factors.length > 0) {
+    return false;
+  }
+  const { priority_score, priority_category } = computePriorityScore(village, weights);
+  village.priority_score = Number.isFinite(village.priority_score)
+    ? village.priority_score
+    : priority_score;
+  village.priority_category = PRIORITY_CATEGORIES.includes(village.priority_category)
+    ? village.priority_category
+    : priority_category;
+  if (!Array.isArray(village.top_factors) || village.top_factors.length === 0) {
+    village.top_factors = computeTopFactors(village.hazard_factors || {});
+  }
+  return true;
+}
+
+/**
+ * Recompute priority for every village document from the given weights.
+ * Batched to respect Firestore's 500-op limit.
+ * @param {Object} priorityWeights
+ * @returns {Promise<number>} count of villages recomputed
+ */
+async function recomputeAllVillagePriorities(priorityWeights) {
+  const villagesSnap = await db.collection("villages").get();
+
+  const BATCH_SIZE = 499;
+  let batch = db.batch();
+  let opCount = 0;
+  let recomputed = 0;
+
+  for (const doc of villagesSnap.docs) {
+    const village = doc.data();
+    const { priority_score, priority_category } = computePriorityScore(village, priorityWeights);
+    const top_factors = computeTopFactors(village.hazard_factors || {});
+
+    batch.update(doc.ref, {
+      priority_score,
+      priority_category,
+      top_factors,
+      updated_at: FieldValue.serverTimestamp(),
+    });
+    opCount++;
+    recomputed++;
+
+    if (opCount >= BATCH_SIZE) {
+      await batch.commit();
+      batch = db.batch();
+      opCount = 0;
+    }
+  }
+  if (opCount > 0) {
+    await batch.commit();
+  }
+
+  return recomputed;
 }
 
 // ==============================================================================
@@ -239,6 +342,34 @@ exports.getVillages = onCall({ cors: true, invoker: "public" }, async (request) 
   const villages = [];
   snapshot.forEach((doc) => villages.push({ id: doc.id, ...doc.data() }));
 
+  // ── Self-heal: any village served without a computed priority gets one now ──
+  // This covers docs that were seeded but never picked up by recomputePriority
+  // (trigger not deployed, cold seed, etc.). We also persist the fix so it only
+  // ever happens once per document.
+  const needHeal = villages.filter((v) => !hasComputedPriority(v));
+  if (needHeal.length > 0) {
+    const weights = await resolvePriorityWeights();
+    needHeal.forEach((v) => backfillPriority(v, weights));
+
+    logger.warn(`[getVillages] backfilled priority for ${needHeal.length} village(s)`, {
+      ids: needHeal.map((v) => v.id),
+    });
+
+    const batch = db.batch();
+    for (const v of needHeal) {
+      batch.update(db.collection("villages").doc(v.id), {
+        priority_score: v.priority_score,
+        priority_category: v.priority_category,
+        top_factors: v.top_factors,
+        updated_at: FieldValue.serverTimestamp(),
+      });
+    }
+    // Best-effort persistence — don't fail the read if the write-back fails.
+    batch.commit().catch((err) =>
+      logger.error("[getVillages] priority write-back failed", err)
+    );
+  }
+
   // Sort in-process (avoids needing a composite index for every filter combo)
   villages.sort((a, b) => (b.priority_score || 0) - (a.priority_score || 0));
 
@@ -265,6 +396,21 @@ exports.getVillageDetail = onCall({ cors: true, invoker: "public" }, async (requ
   }
 
   const village = { id: villageSnap.id, ...villageSnap.data() };
+
+  // Self-heal a village that was never scored (see getVillages for rationale).
+  if (!hasComputedPriority(village) ||
+      !Array.isArray(village.top_factors) || village.top_factors.length === 0) {
+    const weights = await resolvePriorityWeights();
+    if (backfillPriority(village, weights)) {
+      logger.warn(`[getVillageDetail] backfilled priority for ${villageId}`);
+      db.collection("villages").doc(villageId).update({
+        priority_score: village.priority_score,
+        priority_category: village.priority_category,
+        top_factors: village.top_factors,
+        updated_at: FieldValue.serverTimestamp(),
+      }).catch((err) => logger.error("[getVillageDetail] write-back failed", err));
+    }
+  }
 
   // Merge recommended site if one has been assigned
   if (village.recommended_site_id) {
@@ -413,43 +559,31 @@ exports.updateWeights = onCall({ cors: true, invoker: "public" }, async (request
   logger.info("[updateWeights] config/weights updated.", newWeights);
 
   // ── Batch-recompute priority for all villages ─────────────────────────────
-  const villagesSnap = await db.collection("villages").get();
-  const w = newWeights.priority;
-
-  const BATCH_SIZE = 499; // Firestore batch limit is 500 ops
-  let batch   = db.batch();
-  let opCount = 0;
-  let recomputed = 0;
-
-  for (const doc of villagesSnap.docs) {
-    const village = doc.data();
-    const { priority_score, priority_category } = computePriorityScore(village, w);
-    const top_factors = computeTopFactors(village.hazard_factors || {});
-
-    batch.update(doc.ref, {
-      priority_score,
-      priority_category,
-      top_factors,
-      updated_at: FieldValue.serverTimestamp(),
-    });
-    opCount++;
-    recomputed++;
-
-    if (opCount >= BATCH_SIZE) {
-      await batch.commit();
-      batch   = db.batch();
-      opCount = 0;
-    }
-  }
-  if (opCount > 0) {
-    await batch.commit();
-  }
+  const recomputed = await recomputeAllVillagePriorities(newWeights.priority);
 
   logger.info(`[updateWeights] Recomputed priority for ${recomputed} villages.`);
 
   return {
     message:    `Weights updated and priority recomputed for ${recomputed} villages.`,
     new_weights: newWeights,
+    villages_recomputed: recomputed,
+  };
+});
+
+// ==============================================================================
+// 5b. recomputeAllPriorities  — onCall (no params)
+//     Recomputes priority_score / priority_category / top_factors for every
+//     village from the CURRENT config/weights, without changing any weights.
+//     Used as an idempotent self-repair / ops recovery path.
+// ==============================================================================
+exports.recomputeAllPriorities = onCall({ cors: true, invoker: "public" }, async () => {
+  const priorityWeights = await resolvePriorityWeights();
+  const recomputed = await recomputeAllVillagePriorities(priorityWeights);
+
+  logger.info(`[recomputeAllPriorities] Recomputed priority for ${recomputed} villages.`);
+
+  return {
+    message: `Priority recomputed for ${recomputed} villages.`,
     villages_recomputed: recomputed,
   };
 });

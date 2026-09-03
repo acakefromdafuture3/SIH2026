@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { Search, ArrowUpDown, Filter, ChevronRight, AlertTriangle, Users, Flame, ShieldAlert } from "lucide-react";
 import { PRIORITY_STYLES } from "../constants/theme";
+import { formatScore } from "../utils/priority";
 
 export default function VillageList({
   villages,
@@ -178,7 +179,7 @@ export default function VillageList({
                   <div className="flex flex-col items-end flex-shrink-0">
                     <div className="flex items-baseline gap-0.5">
                       <span className="text-sm font-black font-mono" style={{ color: style.color }}>
-                        {Math.round(village.priority_score)}
+                        {formatScore(village.priority_score)}
                       </span>
                       <span className="text-[9px] text-slate-500">/100</span>
                     </div>

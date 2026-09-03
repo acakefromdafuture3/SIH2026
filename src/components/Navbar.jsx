@@ -72,13 +72,18 @@ export default function Navbar({
           </div>
 
           {/* Data source badge */}
-          <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-950/80 border border-slate-800 text-[11px]">
-            <Database className={`w-3.5 h-3.5 ${dataSource === 'live_firebase' ? 'text-emerald-400' : 'text-cyan-400'}`} />
-            <span className="text-slate-500">Engine:</span>
-            <span className={`font-mono font-semibold ${dataSource === 'live_firebase' ? 'text-emerald-400' : 'text-cyan-400'}`}>
-              {dataSource === 'live_firebase' ? 'Firebase asia-south1' : 'Geospatial ML Node'}
-            </span>
-          </div>
+          {(() => {
+            const isLive = typeof dataSource === 'string' && dataSource.startsWith('live_firebase');
+            return (
+              <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-950/80 border border-slate-800 text-[11px]">
+                <Database className={`w-3.5 h-3.5 ${isLive ? 'text-emerald-400' : 'text-cyan-400'}`} />
+                <span className="text-slate-500">Engine:</span>
+                <span className={`font-mono font-semibold ${isLive ? 'text-emerald-400' : 'text-cyan-400'}`}>
+                  {isLive ? 'Firebase asia-south1' : 'Geospatial ML Node'}
+                </span>
+              </div>
+            );
+          })()}
 
           {/* Adjust weights button */}
           <button

@@ -18,6 +18,7 @@ import {
   CheckCircle2
 } from "lucide-react";
 import { PRIORITY_STYLES } from "../constants/theme";
+import { formatScore } from "../utils/priority";
 import SiteMatchList from "./SiteMatchList";
 
 export default function VillageDetail({
@@ -42,7 +43,8 @@ export default function VillageDetail({
     );
   }
 
-  const priorityStyle = PRIORITY_STYLES[village.priority_category] || PRIORITY_STYLES.Monitor;
+  const priorityCategory = village.priority_category || "Monitor";
+  const priorityStyle = PRIORITY_STYLES[priorityCategory] || PRIORITY_STYLES.Monitor;
   const factors = village.hazard_factors || {};
 
   return (
@@ -54,7 +56,7 @@ export default function VillageDetail({
           <div className="space-y-1.5">
             <div className="flex items-center gap-2">
               <span className={`text-[10px] uppercase font-black tracking-wider px-2.5 py-0.5 rounded-full shadow-sm ${priorityStyle.badgeBg}`}>
-                {village.priority_category} Priority
+                {priorityCategory} Priority
               </span>
               <span className="text-xs text-slate-400 font-mono">
                 Sector ID: {village.id}
@@ -78,7 +80,7 @@ export default function VillageDetail({
             <div className="text-right">
               <span className="text-[10px] uppercase tracking-wider text-slate-400 block font-semibold">Priority Index</span>
               <span className="text-2xl font-black font-mono" style={{ color: priorityStyle.color }}>
-                {village.priority_score}
+                {formatScore(village.priority_score)}
               </span>
             </div>
             <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${priorityStyle.color}15`, border: `1px solid ${priorityStyle.color}40` }}>

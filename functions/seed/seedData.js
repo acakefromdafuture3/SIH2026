@@ -14,6 +14,7 @@
 "use strict";
 
 const admin = require("firebase-admin");
+const { computePriorityScore, computeTopFactors } = require("../priorityEngine");
 
 // 1. Mock Villages (8 documents — Majuli, Assam)
 const villagesData = [
@@ -350,13 +351,35 @@ const HERO_VILLAGES = [
  * @param {FirebaseFirestore.Firestore} db - Firestore instance
  * @returns {Promise<{villagesCount: number, relocationSitesCount: number, configSeeded: boolean}>}
  */
+/**
+ * Returns a copy of a village with priority_score / priority_category / top_factors
+ * computed up front, so seeded documents are immediately usable even if the
+ * recomputePriority trigger never fires.
+ * @param {Object} village
+ * @param {Object} priorityWeights
+ * @returns {Object}
+ */
+function withComputedPriority(village, priorityWeights) {
+  const { priority_score, priority_category } = computePriorityScore(village, priorityWeights);
+  return {
+    ...village,
+    priority_score,
+    priority_category,
+    top_factors: computeTopFactors(village.hazard_factors || {}),
+  };
+}
+
 async function seedFirestore(db) {
   if (!db) {
     throw new Error("Firestore database instance must be provided.");
   }
 
-  // All villages to seed = base mock set + curated hero villages
-  const allVillages = [...villagesData, ...HERO_VILLAGES];
+  // All villages to seed = base mock set + curated hero villages, each with
+  // priority scores precomputed from the seeded weights.
+  const priorityWeights = weightsConfigData.priority;
+  const allVillages = [...villagesData, ...HERO_VILLAGES].map((v) =>
+    withComputedPriority(v, priorityWeights)
+  );
 
   // 0. Clean up obsolete documents
   const validVillageIds = new Set(allVillages.map(v => v.id));
