@@ -114,51 +114,46 @@ ResQ is a **single decision-support dashboard** that ingests village-level hazar
 
 ```mermaid
 flowchart LR
-    subgraph ING["📥 DATA INGESTION"]
-        direction TB
-        I1["🛰️ <b>Bhuvan</b> — ISRO slope / DEM"]
-        I2["🌧️ <b>IMD</b> — rainfall"]
-        I3["👥 <b>Census 2011</b> — population · elderly %"]
-        I4["🗺️ <b>OpenStreetMap</b> — roads · assets"]
+    subgraph ING["DATA INGESTION"]
+        I1["Bhuvan - ISRO slope / DEM"]
+        I2["IMD - rainfall"]
+        I3["Census 2011 - population, elderly pct"]
+        I4["OpenStreetMap - roads, assets"]
     end
 
-    subgraph ML["🧠 ML SCORING ENGINE"]
-        direction TB
-        M1["<b>Feature Engineering</b><br/>slope · rainfall · density · elderly %"]
-        M2["<b>XGBoost Risk Model</b><br/>priority score 0–100"]
-        M3["<b>SHAP Explainability</b><br/>why each zone scored high"]
+    subgraph ML["ML SCORING ENGINE"]
+        M1["Feature Engineering<br/>slope, rainfall, density, elderly pct"]
+        M2["XGBoost Risk Model<br/>priority score 0-100"]
+        M3["SHAP Explainability<br/>why each zone scored high"]
         M1 --> M2 --> M3
     end
 
-    subgraph CO["☁️ CLOUD ORCHESTRATION"]
-        direction TB
-        C1["🔶 <b>Cloud Functions</b><br/>API · OTP recovery"]
-        C2["🔥 <b>Firestore</b><br/>encrypted metadata"]
+    subgraph CO["CLOUD ORCHESTRATION"]
+        C1["Cloud Functions<br/>API, OTP recovery"]
+        C2["Firestore<br/>encrypted metadata"]
     end
 
-    subgraph GIS["🗺️ GIS DASHBOARD"]
-        direction TB
-        G1["⚛️ <b>React + Tailwind UI</b>"]
-        G2["🍃 <b>Leaflet risk map</b><br/>choropleth priority zones"]
-        G3["👆 <b>Click-to-inspect</b><br/>per-zone SHAP factors"]
+    subgraph GIS["GIS DASHBOARD"]
+        G1["React + Tailwind UI"]
+        G2["Leaflet risk map<br/>choropleth priority zones"]
+        G3["Click-to-inspect<br/>per-zone SHAP factors"]
     end
 
-    subgraph DM["🏛️ DECISION MAKERS"]
-        direction TB
-        D1["🏛️ SDMA / DDMA"]
-        D2["📋 Relocation planning"]
-        D3["🔔 Early-warning alerts"]
+    subgraph DM["DECISION MAKERS"]
+        D1["SDMA / DDMA"]
+        D2["Relocation planning"]
+        D3["Early-warning alerts"]
     end
 
-    RISK{"RISK<br/>≥ 70 ?"}
+    RISK{"Risk score<br/>70 or above?"}
 
     ING -- "raw geodata" --> ML
-    ML -- "scores ↑" --> CO
+    ML -- "scores up" --> CO
     CO -. "serve via API" .-> GIS
     ML -- "risk layer" --> GIS
     ML --> RISK
-    RISK -- "< 70 → monitor" -.-> ING
-    RISK -- "≥ 70 → relocate" --> DM
+    RISK -- "below 70: monitor" -.-> ING
+    RISK -- "70 or above: relocate" --> DM
     GIS --> DM
 ```
 
