@@ -152,7 +152,7 @@ flowchart LR
     CO -. "serve via API" .-> GIS
     ML -- "risk layer" --> GIS
     ML --> RISK
-    RISK -- "below 70: monitor" -.-> ING
+    RISK -. "below 70: monitor" .-> ING
     RISK -- "70 or above: relocate" --> DM
     GIS --> DM
 ```
