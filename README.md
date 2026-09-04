@@ -104,13 +104,12 @@ ResQ is a **single decision-support dashboard** that ingests village-level hazar
 | **Firebase project** | `sih2026-4b480` |
 | **Demo scenario** | Majuli, Assam — 10 villages (incl. 2 contrast "hero" villages), 4 highland resettlement campuses |
 
-> 📸 _Add screenshots or a GIF of the dashboard here (`docs/` folder recommended)._
+
 
 ---
 
 ## 🏗️ Architecture
 
-> The diagram below is the ResQ system architecture (Claude design deck, slide 3), reconstructed here as a Mermaid graph so it renders directly on GitHub. Drop the exported slide image into `docs/architecture.png` and swap it in if you prefer the rendered artwork.
 
 ```mermaid
 flowchart TB
