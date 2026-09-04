@@ -104,7 +104,7 @@ ResQ is a **single decision-support dashboard** that ingests village-level hazar
 | **Firebase project** | `sih2026-4b480` |
 | **Demo scenario** | Majuli, Assam — 10 villages (incl. 2 contrast "hero" villages), 4 highland resettlement campuses |
 
-> 📸 _Add screenshots or a GIF of the dashboard here (`docs/` folder recommended)._
+
 
 ---
 
