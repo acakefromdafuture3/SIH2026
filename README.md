@@ -110,52 +110,19 @@ ResQ is a **single decision-support dashboard** that ingests village-level hazar
 
 ## 🏗️ Architecture
 
-> ResQ system architecture (Claude design deck, slide 3), rendered as a Mermaid graph so it stays live on GitHub. The original slide export can be dropped into `docs/architecture.png` if you prefer the artwork.
+<div align="center">
 
-```mermaid
-flowchart LR
-    subgraph ING["DATA INGESTION"]
-        I1["Bhuvan - ISRO slope / DEM"]
-        I2["IMD - rainfall"]
-        I3["Census 2011 - population, elderly pct"]
-        I4["OpenStreetMap - roads, assets"]
-    end
+![ResQ system architecture](docs/architecture.png)
 
-    subgraph ML["ML SCORING ENGINE"]
-        M1["Feature Engineering<br/>slope, rainfall, density, elderly pct"]
-        M2["XGBoost Risk Model<br/>priority score 0-100"]
-        M3["SHAP Explainability<br/>why each zone scored high"]
-        M1 --> M2 --> M3
-    end
+<sub>ResQ system architecture — data ingestion → ML scoring engine → cloud orchestration + GIS dashboard → decision makers.</sub>
 
-    subgraph CO["CLOUD ORCHESTRATION"]
-        C1["Cloud Functions<br/>API, OTP recovery"]
-        C2["Firestore<br/>encrypted metadata"]
-    end
+</div>
 
-    subgraph GIS["GIS DASHBOARD"]
-        G1["React + Tailwind UI"]
-        G2["Leaflet risk map<br/>choropleth priority zones"]
-        G3["Click-to-inspect<br/>per-zone SHAP factors"]
-    end
-
-    subgraph DM["DECISION MAKERS"]
-        D1["SDMA / DDMA"]
-        D2["Relocation planning"]
-        D3["Early-warning alerts"]
-    end
-
-    RISK{"Risk score<br/>70 or above?"}
-
-    ING -- "raw geodata" --> ML
-    ML -- "scores up" --> CO
-    CO -. "serve via API" .-> GIS
-    ML -- "risk layer" --> GIS
-    ML --> RISK
-    RISK -. "below 70: monitor" .-> ING
-    RISK -- "70 or above: relocate" --> DM
-    GIS --> DM
-```
+**Flow:** public geodata (Bhuvan/ISRO, IMD, Census 2011, OpenStreetMap) is ingested and turned into
+features, scored by the risk model into a 0–100 priority score, and explained per zone (SHAP). Scores
+are persisted and served by the cloud layer (Cloud Functions + Firestore) to the React/Leaflet GIS
+dashboard. A risk gate routes each village: **below 70 → keep monitoring** (loop back to ingestion),
+**70 or above → relocation planning** for the SDMA/DDMA decision makers.
 
 ### Where the current prototype stands
 
