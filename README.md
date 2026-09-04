@@ -110,74 +110,76 @@ ResQ is a **single decision-support dashboard** that ingests village-level hazar
 
 ## 🏗️ Architecture
 
-> The diagram below is the ResQ system architecture (Claude design deck, slide 3), reconstructed here as a Mermaid graph so it renders directly on GitHub. Drop the exported slide image into `docs/architecture.png` and swap it in if you prefer the rendered artwork.
+> ResQ system architecture (Claude design deck, slide 3), rendered as a Mermaid graph so it stays live on GitHub. The original slide export can be dropped into `docs/architecture.png` if you prefer the artwork.
 
 ```mermaid
-flowchart TB
-    subgraph Client["🖥️ Client — React SPA (Vite + Tailwind)"]
-        UI["Dashboard Shell<br/>Stats · Village List · Map · Drawer"]
-        MAP["Leaflet GIS Map<br/>react-leaflet"]
-        WM["Weights Calibration Modal"]
-        API["ApiService<br/>(resilient wrapper)"]
-        MOCK[("Local Mock Dataset<br/>Majuli / Chamoli")]
-        UI --> API
-        MAP --> API
-        WM --> API
-        API -. "network fault" .-> MOCK
-    end
-
-    subgraph Firebase["☁️ Firebase — asia-south1 (Mumbai)"]
+flowchart LR
+    subgraph ING["📥 DATA INGESTION"]
         direction TB
-        subgraph CF["Cloud Functions v2 (Node 20)"]
-            GV["getVillages<br/>(onCall)"]
-            GVD["getVillageDetail<br/>(onCall)"]
-            GSM["getSiteMatches<br/>(onCall)"]
-            UW["updateWeights<br/>(onCall)"]
-            RP["recomputePriority<br/>(Firestore trigger)"]
-            HC["healthCheck / seedDatabase<br/>(onRequest)"]
-        end
-        subgraph ENG["Pure Scoring Engines (no I/O, unit-tested)"]
-            PE["priorityEngine.js<br/>computePriorityScore · computeTopFactors"]
-            SR["siteRanking.js<br/>computeSuitability"]
-        end
-        subgraph FS["🔥 Cloud Firestore"]
-            VC[("villages")]
-            RSC[("relocation_sites")]
-            VSM[("village_site_matches")]
-            CFG[("config/weights")]
-        end
-        RULES["firestore.rules<br/>public read · writes server-only"]
+        I1["🛰️ <b>Bhuvan</b> — ISRO slope / DEM"]
+        I2["🌧️ <b>IMD</b> — rainfall"]
+        I3["👥 <b>Census 2011</b> — population · elderly %"]
+        I4["🗺️ <b>OpenStreetMap</b> — roads · assets"]
     end
 
-    subgraph Data["📥 Data Sources"]
-        SEED["seedData.js<br/>curated demo dataset"]
-        MLREADY["ML / Remote-sensing feed<br/>(schema-compatible, planned)"]
+    subgraph ML["🧠 ML SCORING ENGINE"]
+        direction TB
+        M1["<b>Feature Engineering</b><br/>slope · rainfall · density · elderly %"]
+        M2["<b>XGBoost Risk Model</b><br/>priority score 0–100"]
+        M3["<b>SHAP Explainability</b><br/>why each zone scored high"]
+        M1 --> M2 --> M3
     end
 
-    API -- "httpsCallable (HTTPS + JSON)" --> GV & GVD & GSM & UW
-    API -- "direct SDK read" --> FS
-    GV --> VC
-    GVD --> VC & RSC
-    GSM --> VC & RSC
-    GSM --> ENG
-    GSM -- "writes match cache" --> VSM
-    UW --> CFG
-    UW -- "batch update" --> VC
-    VC -- "onDocumentWritten" --> RP
-    RP --> ENG
-    RP -- "writes computed fields" --> VC
-    GV & GVD & GSM --> ENG
-    SEED --> FS
-    MLREADY -. "future" .-> VC
-    FS -.-> RULES
+    subgraph CO["☁️ CLOUD ORCHESTRATION"]
+        direction TB
+        C1["🔶 <b>Cloud Functions</b><br/>API · OTP recovery"]
+        C2["🔥 <b>Firestore</b><br/>encrypted metadata"]
+    end
+
+    subgraph GIS["🗺️ GIS DASHBOARD"]
+        direction TB
+        G1["⚛️ <b>React + Tailwind UI</b>"]
+        G2["🍃 <b>Leaflet risk map</b><br/>choropleth priority zones"]
+        G3["👆 <b>Click-to-inspect</b><br/>per-zone SHAP factors"]
+    end
+
+    subgraph DM["🏛️ DECISION MAKERS"]
+        direction TB
+        D1["🏛️ SDMA / DDMA"]
+        D2["📋 Relocation planning"]
+        D3["🔔 Early-warning alerts"]
+    end
+
+    RISK{"RISK<br/>≥ 70 ?"}
+
+    ING -- "raw geodata" --> ML
+    ML -- "scores ↑" --> CO
+    CO -. "serve via API" .-> GIS
+    ML -- "risk layer" --> GIS
+    ML --> RISK
+    RISK -- "< 70 → monitor" -.-> ING
+    RISK -- "≥ 70 → relocate" --> DM
+    GIS --> DM
 ```
+
+### Where the current prototype stands
+
+The design above is the **target architecture**. The hackathon prototype in this repo implements the right-hand side end-to-end and stubs the ML block behind a stable schema:
+
+| Block in the diagram | In this repo today |
+| :-- | :-- |
+| **Data Ingestion** | Curated seed dataset (`functions/seed/seedData.js`) for Majuli, Assam — sourced from the same public datasets the pipeline will automate. |
+| **ML Scoring Engine** | Transparent **weighted-linear** scoring (`priorityEngine.js`, `siteRanking.js`) producing a 0–100 priority score + top-factor explainability. `hazard_score` / `hazard_factors` are the **schema boundary** an XGBoost + SHAP pipeline plugs into without touching the API or UI. |
+| **Cloud Orchestration** | **Firebase Cloud Functions v2** (Node 20, `asia-south1`) — 4 callables (`getVillages`, `getVillageDetail`, `getSiteMatches`, `updateWeights`), a Firestore `recomputePriority` trigger, and `healthCheck` / `seedDatabase`; **Cloud Firestore** with public-read / server-only-write rules. |
+| **GIS Dashboard** | **React 18 + Vite + Tailwind** SPA with a **Leaflet** risk map, priority matrix, diagnostics panel, explainability drawer, and a live weight-calibration modal — plus an offline-resilient local fallback. |
+| **Decision Makers** | Command-overview stats, ranked action list, and a per-village dossier built for briefings and audit trails. |
 
 ### Why this shape
 
 | Choice | Rationale |
 | :-- | :-- |
 | **Serverless (Cloud Functions + Firestore)** | Zero server ops for a hackathon team; scales to zero cost at idle; regional deploy in Mumbai keeps latency low for Indian users. |
-| **Pure scoring engines, isolated from Firestore** | `priorityEngine.js` / `siteRanking.js` take plain objects in and return plain objects out — trivially unit-testable and portable to any future runtime. |
+| **Pure scoring engines, isolated from I/O** | `priorityEngine.js` / `siteRanking.js` take plain objects in and return plain objects out — trivially unit-testable and swappable for an ML model behind the same interface. |
 | **Firestore trigger for recompute** | Editing a village's raw hazard data anywhere automatically refreshes its priority score — no manual "recalculate" step, with an infinite-loop guard on computed fields. |
 | **Client-side resilient fallback** | The `ApiService` layer tries live Firebase first, then a bundled dataset, tagging every response with its `source` so the UI stays honest. |
 | **Public-read / server-only-write rules** | Judges and demo users need no login; all mutations still flow through validated Cloud Functions. |
