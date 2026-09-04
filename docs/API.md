@@ -1,5 +1,3 @@
-<!-- Generated for SIH 2026 ResQ prototype — verify against live codebase before final submission -->
-
 # ResQ — API Reference Specification
 
 This document provides complete documentation for the 7 backend endpoints implemented in `functions/index.js`, including Cloud Functions v2 callables, HTTP endpoints, and Firestore event triggers.
@@ -237,8 +235,8 @@ const result = await httpsCallable(functions, 'getSiteMatches')({ villageId: 'sa
 
 | Condition | Error String |
 | :--- | :--- |
-| Priority weights do not sum to 1.0 ($\pm 0.01$) | `invalid-argument: Priority weights must sum to 1.0 (current sum: 1.15).` |
-| Site weights do not sum to 1.0 ($\pm 0.01$) | `invalid-argument: Site ranking weights must sum to 1.0 (current sum: 0.90).` |
+| Priority weights do not sum to 1.0 (± 0.01) | `invalid-argument: Priority weights must sum to 1.0 (current sum: 1.15).` |
+| Site weights do not sum to 1.0 (± 0.01) | `invalid-argument: Site ranking weights must sum to 1.0 (current sum: 0.90).` |
 
 * **Frontend Usage:**
 ```javascript

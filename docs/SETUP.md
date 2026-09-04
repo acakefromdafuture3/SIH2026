@@ -1,5 +1,3 @@
-<!-- Generated for SIH 2026 ResQ prototype — verify against live codebase before final submission -->
-
 # ResQ — Setup, Emulator & Deployment Manual
 
 This guide provides step-by-step instructions for setting up the local development environment, executing local Firebase emulators, running automated tests, and deploying the ResQ platform to production.
@@ -173,4 +171,4 @@ npm --prefix functions run test:live
 | **Leaflet Map Displays Blank Screen** | Invalid coordinates (`NaN, NaN`) or 0-size container. | Ensure coordinates are parsed via `parseFloat()` and wrapper container has CSS height (`h-full`). |
 | **Firestore Permission Denied** | Direct client-side write attempted. | Ensure all data mutations route through Cloud Functions callables; client writes are blocked by `firestore.rules`. |
 | **Seed Data Missing in Emulator UI** | Emulator started after running seed script. | Execute `npm run emulators:start` *first*, then run `npm run seed` in a separate terminal window. |
-| **`updateWeights` Fails to Recalculate** | Priority weights do not sum to $1.0$. | Check input slider values in `WeightsModal.jsx` to ensure $w_h + w_e + w_v + w_{hist} = 1.0 \pm 0.01$. |
+| **`updateWeights` Fails to Recalculate** | Priority weights do not sum to 1.0. | Check input slider values in `WeightsModal.jsx` to ensure `w_h + w_e + w_v + w_hist = 1.0 ± 0.01`. |

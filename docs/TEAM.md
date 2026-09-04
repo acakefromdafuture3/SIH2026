@@ -1,5 +1,3 @@
-<!-- Generated for SIH 2026 ResQ prototype — verify against live codebase before final submission -->
-
 # ResQ — Team Structure, Roles & Execution Manual
 
 This document details the team roles, component ownership, development workflows, and hackathon demonstration checklists for the SIH 2026 ResQ project.
@@ -54,7 +52,7 @@ This document details the team roles, component ownership, development workflows
 * Designed glassmorphic dark-mode interface layout (`bg-slate-950`) optimized for command center operations.
 * Built slide-over explainability dossier (`VillageDrawer.jsx`) displaying top 3 primary risk drivers for selected settlements.
 * Developed `SiteMatchList.jsx` featuring per-criterion suitability progress bars (`safety`, `capacity`, `infrastructure`, `accessibility`, `water`, `distance`).
-* Implemented `WeightsModal.jsx` live weight calibration modal with real-time $100\%$ sum validation.
+* Implemented `WeightsModal.jsx` live weight calibration modal with real-time 100% sum validation.
 
 ### App Tester & QA
 * **Primary Repo Files:** `functions/seed/testScoring.js`, `functions/seed/testFunctions.js`, `functions/seed/smokeTest.js`.
@@ -65,30 +63,35 @@ This document details the team roles, component ownership, development workflows
 
 ---
 
-## 3. Collaborative AI-Assisted Workflow ("Vibe Coding")
+## 3. Development Workflow & Integration Practices
 
-The team leveraged an AI-assisted development workflow using Antigravity and complementary models:
+The team worked in parallel workstreams kept in sync by a schema-first contract and a shared demo dataset, so backend, GIS, and UI work could progress independently and integrate cleanly.
 
 ```
-+-------------------------------------------------------------------------+
-|                  Antigravity Agentic Coding Assistant                   |
-|         (Sequenced multi-file prompts & workflow orchestration)         |
-+------------------------------------+------------------------------------+
-                                     |
-             +-----------------------+-----------------------+
-             |                                               |
-             v                                               v
-+--------------------------+                   +--------------------------+
-|  Gemini 3 Flash          |                   |  Claude Sonnet 4.6       |
-|  - System Documentation  |                   |  - Scoring Algorithms    |
-|  - JSON Seed Datasets    |                   |  - Cloud Functions Logic |
-|  - UI Component Layouts  |                   |  - Bug Trace Diagnostics |
-+--------------------------+                   +--------------------------+
+        Schema Contract (docs/DATA.md + FRONTEND_INTEGRATION.md)
+        - Firestore collections, field names, score ranges
+        - Callable request / response shapes
+                              |
+        +---------------------+---------------------+
+        |                     |                     |
+        v                     v                     v
+   Backend track         GIS / Map track       UI / Explainability track
+   (scoring engines,     (Leaflet, pins,       (panels, drawer, weight
+    callables, trigger)   match vectors)        calibration modal)
+        |                     |                     |
+        +---------------------+---------------------+
+                              |
+                              v
+        Shared mock dataset (src/data/mockChamoliData.js)
+        lets every track run end-to-end before the live
+        backend is deployed, and powers offline fallback.
 ```
 
-* **Antigravity CLI:** Handled prompt sequencing, local command execution, git operations, and multi-file code editing.
-* **Gemini 3 Flash:** Selected for high-speed scaffolding, schema definitions, seed data creation, and comprehensive documentation generation.
-* **Claude Sonnet 4.6 Thinking:** Selected for complex algorithmic reasoning, scoring formula derivation, Cloud Functions logic, and deep log traceback debugging.
+* **Schema-first contract:** Collection shapes, field names, score ranges, and callable payloads were fixed early in `docs/DATA.md` and `FRONTEND_INTEGRATION.md`. Frontend and backend built against the same spec in parallel.
+* **Shared demo dataset:** The Majuli seed (`functions/seed/seedData.js`) and its client-side replica (`src/data/mockChamoliData.js`) gave every workstream realistic data immediately — and the replica doubles as the offline-resilience fallback.
+* **Pure-function core:** Scoring logic (`priorityEngine.js`, `siteRanking.js`) is isolated from Firestore, so it could be unit-tested and reviewed without standing up the backend.
+* **Small, focused PRs:** Topic branches off `main`, local test suite before opening a PR, one peer review plus a passing smoke test before merge (see Section 5).
+* **Continuous verification:** `testScoring.js`, `testFunctions.js`, and `smokeTest.js` were run against the emulator locally and against the live `asia-south1` deployment before demo checkpoints.
 
 ---
 
@@ -101,15 +104,15 @@ Use the following verification checklist prior to presenting the live demonstrat
 - [ ] Security rules in `firestore.rules` reviewed and deployed (public read, server-only write).
 - [ ] `healthCheck` endpoint returns `{"status": "ok"}` on live GCP project.
 - [ ] Dashboard opens cleanly at `http://localhost:3000` rendering all 10 village map markers.
-- [ ] **Salmora Riverfront** appears as the #1 Immediate priority settlement (Priority Score $\approx 92.45$).
+- [ ] **Salmora Riverfront** appears as the #1 Immediate priority settlement (Priority Score ≈ 92.45).
 - [ ] Clicking Salmora opens `VillageDrawer.jsx` displaying top 3 hazard drivers (Erosion History, Exposure, Vulnerability).
 - [ ] `getSiteMatches` successfully recommends **Jengraimukh Safe Highland Campus** as the #1 relocation match.
 - [ ] Dynamic dashed cyan vector line connects Salmora Riverfront to Jengraimukh Campus on `MapView.jsx`.
-- [ ] Contrast settlement (**Jengraimukh Basin**) displays clearly as Green (`Monitor` category, score $\approx 28.50$).
+- [ ] Contrast settlement (**Jengraimukh Basin**) displays clearly as Green (`Monitor` category, score ≈ 28.50).
 - [ ] Opening `WeightsModal.jsx`, adjusting priority weights, and saving causes instant dashboard re-ranking.
 - [ ] Offline resilience verified: disconnecting network gracefully triggers `local_dataset` fallback mode.
 - [ ] Backup video recording captured and stored locally.
-- [ ] Presentation slides finalized (Problem $\rightarrow$ Architecture $\rightarrow$ Live Demo $\rightarrow$ Technical Impact).
+- [ ] Presentation slides finalized (Problem → Architecture → Live Demo → Technical Impact).
 
 ---
 

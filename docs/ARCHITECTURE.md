@@ -1,5 +1,3 @@
-<!-- Generated for SIH 2026 ResQ prototype — verify against live codebase before final submission -->
-
 # ResQ — System Architecture & Design Specification
 
 ## Overview
@@ -271,18 +269,21 @@ ResQ is structured into six functional modules across the backend and frontend c
 ### 1. Village Priority Engine (`functions/priorityEngine.js`)
 
 **Formula:**
-$$\text{priority\_score} = (\text{hazard} \times w_h) + (\text{exposure} \times w_e) + (\text{vulnerability} \times w_v) + (\text{history} \times w_{hist})$$
 
-Where default weights are $w_h = 0.35, w_e = 0.25, w_v = 0.20, w_{hist} = 0.20$.
+```text
+priority_score = (hazard × w_h) + (exposure × w_e) + (vulnerability × w_v) + (history × w_hist)
+```
+
+Where default weights are `w_h = 0.35`, `w_e = 0.25`, `w_v = 0.20`, `w_hist = 0.20`.
 
 **Category Thresholds (`CATEGORY_THRESHOLDS`):**
 
 | Score Range | Category | Hex Map Marker Color | Urgency Level |
 | :--- | :--- | :--- | :--- |
-| $\ge 71.0$ | **Immediate** | `#EF4444` (Red) | High risk of imminent displacement; immediate evacuation planning. |
-| $\ge 51.0$ | **Short-term** | `#F97316` (Orange) | Severe seasonal vulnerability; scheduled relocation within 1–2 years. |
-| $\ge 31.0$ | **Medium-term** | `#EAB308` (Yellow) | Moderate structural exposure; structural mitigation & monitoring. |
-| $< 31.0$ | **Monitor** | `#10B981` (Green) | Stable highland or resilient zone; routine telemetry monitoring. |
+| ≥ 71.0 | **Immediate** | `#EF4444` (Red) | High risk of imminent displacement; immediate evacuation planning. |
+| ≥ 51.0 | **Short-term** | `#F97316` (Orange) | Severe seasonal vulnerability; scheduled relocation within 1–2 years. |
+| ≥ 31.0 | **Medium-term** | `#EAB308` (Yellow) | Moderate structural exposure; structural mitigation & monitoring. |
+| &lt; 31.0 | **Monitor** | `#10B981` (Green) | Stable highland or resilient zone; routine telemetry monitoring. |
 
 **Top Factors Calculation (`computeTopFactors`):**
 Extracted dynamically by sorting all input factor key-value pairs (sub-hazard parameters like `landslide_history`, `rainfall`, `slope`, `elevation` alongside `exposure_score` and `vulnerability_score`) in descending order. Returns the top 3 items to populate `top_factors`.
@@ -290,20 +291,23 @@ Extracted dynamically by sorting all input factor key-value pairs (sub-hazard pa
 ### 2. Multi-Criteria Site Ranking Engine (`functions/siteRanking.js`)
 
 **Formula:**
-$$\text{suitability\_score} = \sum_{c \in C} \left( \text{score}(c) \times \text{weight}(c) \right)$$
 
-Where criteria $C = \{\text{safety}, \text{capacity}, \text{infrastructure}, \text{accessibility}, \text{water}, \text{distance}\}$.
+```text
+suitability_score = sum over c in C of ( score(c) × weight(c) )
+```
+
+Where criteria `C = { safety, capacity, infrastructure, accessibility, water, distance }`.
 
 **Criteria Scoring Rules:**
 
 | Criterion | Calculation / Scoring Logic | Default Weight |
 | :--- | :--- | :--- |
-| `safety` | $100 - \text{site.hazard\_risk\_score}$ | 0.40 |
-| `capacity` | Linear scaling: $100$ when $\text{capacity} \ge 2 \times \text{population}$; $0$ when $\text{capacity} \le 1 \times \text{population}$; linear interpolation in between. | 0.20 |
-| `infrastructure` | $\text{mean}(\text{water\_present}, \text{healthcare\_available}, \text{schools\_available}) \times 100$ | 0.15 |
-| `accessibility` | Tiered lookup: `"good"` $\rightarrow 100$, `"moderate"` $\rightarrow 60$, `"poor"` $\rightarrow 25$. | 0.10 |
-| `water` | Tiered lookup: `"high"` $\rightarrow 100$, `"good"` $\rightarrow 75$, `"moderate"` $\rightarrow 50$, `"low"` $\rightarrow 25$. | 0.10 |
-| `distance` | $\max(0, 100 - \text{distance\_km} \times 5)$ | 0.05 |
+| `safety` | `100 − site.hazard_risk_score` | 0.40 |
+| `capacity` | Linear scaling: `100` when `capacity ≥ 2 × population`; `0` when `capacity ≤ 1 × population`; linear interpolation in between. | 0.20 |
+| `infrastructure` | `mean(water_present, healthcare_available, schools_available) × 100` | 0.15 |
+| `accessibility` | Tiered lookup: `"good"` → 100, `"moderate"` → 60, `"poor"` → 25. | 0.10 |
+| `water` | Tiered lookup: `"high"` → 100, `"good"` → 75, `"moderate"` → 50, `"low"` → 25. | 0.10 |
+| `distance` | `max(0, 100 − distance_km × 5)` | 0.05 |
 
 **`criteria_breakdown` Structure:**
 Each item in `criteria_breakdown` provides auditability for decision-makers:
@@ -338,7 +342,7 @@ The scoring algorithms (`computePriorityScore`, `computeTopFactors`, `computeSui
 | **Business Logic Placement** | Isolated Pure Functions | Decouples mathematical scoring logic from database drivers, enabling multi-environment reusability and offline client execution. |
 | **Data Synchronization** | Event-Driven Firestore Trigger | Guarantees eventual consistency across risk scores whenever ground data changes, with strict infinite-loop guards. |
 | **Client Reliability** | Dual-Tier Fallback Service | Ensures 100% dashboard uptime for live hackathon judging even under poor network conditions or cloud outage. |
-| **Security Architecture** | Server-Side Callable Validation | Enforces backend weight validation ($\sum w = 1.0$) and prevents direct client-side database tampering. |
+| **Security Architecture** | Server-Side Callable Validation | Enforces backend weight validation (Σ w = 1.0) and prevents direct client-side database tampering. |
 
 ## Deployment Strategy
 

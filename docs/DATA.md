@@ -1,5 +1,3 @@
-<!-- Generated for SIH 2026 ResQ prototype — verify against live codebase before final submission -->
-
 # ResQ — Data Architecture & Schema Specification
 
 This document details the data sources, database schemas, seed configurations, and Machine Learning integration boundaries for the ResQ decision-support prototype.
@@ -31,14 +29,14 @@ This document details the data sources, database schemas, seed configurations, a
 | `lat` | `number` | Geospatial | No | Centroid latitude coordinate. |
 | `lng` | `number` | Geospatial | No | Centroid longitude coordinate. |
 | `population` | `number` | Census 2011 | No | Total resident population count. |
-| `elderly_pct` | `number` | Census 2011 | No | Percentage of population aged $\ge 60$. |
+| `elderly_pct` | `number` | Census 2011 | No | Percentage of population aged ≥ 60. |
 | `road_access` | `string` | OSM / PWD | No | Access rating: `"good"`, `"moderate"`, or `"poor"`. |
-| `hazard_score` | `number` | ML / Seed | No | Aggregated hazard risk score ($0.0 - 100.0$). |
+| `hazard_score` | `number` | ML / Seed | No | Aggregated hazard risk score (0.0–100.0). |
 | `hazard_factors` | `object` | ML / Seed | No | Map of sub-factors (`{ slope, rainfall, landslide_history, elevation }`). |
-| `exposure_score` | `number` | Demographics | No | Asset and population exposure score ($0.0 - 100.0$). |
-| `vulnerability_score` | `number` | Demographics | No | Socio-economic vulnerability score ($0.0 - 100.0$). |
-| `history_score` | `number` | Historical logs | No | Frequency score of prior disaster occurrences ($0.0 - 100.0$). |
-| `priority_score` | `number` | **Engine** | **Yes** | Computed urgency score ($0.0 - 100.0$). Set by `recomputePriority`. |
+| `exposure_score` | `number` | Demographics | No | Asset and population exposure score (0.0–100.0). |
+| `vulnerability_score` | `number` | Demographics | No | Socio-economic vulnerability score (0.0–100.0). |
+| `history_score` | `number` | Historical logs | No | Frequency score of prior disaster occurrences (0.0–100.0). |
+| `priority_score` | `number` | **Engine** | **Yes** | Computed urgency score (0.0–100.0). Set by `recomputePriority`. |
 | `priority_category` | `string` | **Engine** | **Yes** | Tier: `"Immediate"`, `"Short-term"`, `"Medium-term"`, or `"Monitor"`. |
 | `top_factors` | `array` | **Engine** | **Yes** | Array of top 3 drivers: `[{ factor, contribution }]`. |
 | `recommended_site_id` | `string` | MCDA Engine | No | Foreign key reference to `relocation_sites`. |
@@ -54,7 +52,7 @@ This document details the data sources, database schemas, seed configurations, a
 | `name` | `string` | Field Survey | No | Safe campus or highland site name. |
 | `lat` | `number` | Geospatial | No | Campus latitude coordinate. |
 | `lng` | `number` | Geospatial | No | Campus longitude coordinate. |
-| `hazard_risk_score` | `number` | Environmental | No | Natural hazard risk score ($0.0 - 100.0$; lower is safer). |
+| `hazard_risk_score` | `number` | Environmental | No | Natural hazard risk score (0.0–100.0; lower is safer). |
 | `estimated_capacity` | `number` | Civil Survey | No | Maximum population capacity for long-term shelter. |
 | `water_availability` | `string` | Survey | No | Water supply tier: `"high"`, `"good"`, `"moderate"`, `"low"`. |
 | `road_access` | `string` | OSM / PWD | No | Connectivity tier: `"good"`, `"moderate"`, `"poor"`. |
@@ -72,7 +70,7 @@ This document details the data sources, database schemas, seed configurations, a
 | `village_id` | `string` | System | **Yes** | Foreign key referencing target `villages` document. |
 | `site_id` | `string` | System | **Yes** | Foreign key referencing candidate `relocation_sites` document. |
 | `distance_km` | `number` | Haversine Formula| **Yes** | Straight-line distance in kilometers between centroids. |
-| `suitability_score` | `number` | MCDA Engine | **Yes** | Composite relocation suitability score ($0.0 - 100.0$). |
+| `suitability_score` | `number` | MCDA Engine | **Yes** | Composite relocation suitability score (0.0–100.0). |
 | `criteria_breakdown` | `object` | MCDA Engine | **Yes** | Map of per-criterion breakdown objects (`{ score, weight, weighted }`). |
 | `computed_at` | `timestamp` | System | **Yes** | Execution timestamp. |
 
@@ -101,8 +99,8 @@ The singleton document `config/weights` stores global weight distributions for d
 }
 ```
 
-* **`priority` Group:** Dictates settlement urgency ranking. Sum of components must equal $1.0 \pm 0.01$.
-* **`site_ranking` Group:** Dictates MCDA candidate site suitability evaluation. Sum of components must equal $1.0 \pm 0.01$.
+* **`priority` Group:** Dictates settlement urgency ranking. Sum of components must equal 1.0 ± 0.01.
+* **`site_ranking` Group:** Dictates MCDA candidate site suitability evaluation. Sum of components must equal 1.0 ± 0.01.
 
 ---
 
@@ -113,11 +111,11 @@ The project includes a curated seed dataset for **Majuli Island, Assam** (`funct
 ### Key Demo Settlements
 
 1. **Hero Walkthrough Village — Salmora Riverfront (`salmora_riverfront`):**
-   * **Priority Category:** `Immediate` (Priority Score: $\approx 92.45$)
+   * **Priority Category:** `Immediate` (Priority Score: ≈ 92.45)
    * **Primary Risk Drivers:** Severe riverbank erosion history (`landslide_history`: 95) and critical inundation exposure (`exposure_score`: 90).
    * **Recommended Relocation Campus:** Jengraimukh Safe Highland Campus (`jengraimukh_highland`).
 2. **Contrast Monitoring Village — Jengraimukh Basin (`jengraimukh_basin`):**
-   * **Priority Category:** `Monitor` (Priority Score: $\approx 28.50$)
+   * **Priority Category:** `Monitor` (Priority Score: ≈ 28.50)
    * **Characteristics:** Stable highland terrain, low historical erosion risk, low vulnerability.
 
 > **Offline Dataset Note:** `src/data/mockChamoliData.js` contains a bundled client-side replica of this dataset, ensuring full dashboard functionality even when offline or disconnected from Firebase.
@@ -137,18 +135,18 @@ phulani_highland,Phulani Safe Zone,Majuli,Assam,27.02,94.22,850,8.2,good,20.0,10
 ### Verified Scoring Sample Calculation
 
 For **Salmora Riverfront**:
-* $\text{hazard} = 93.0 \times 0.35 = 32.55$
-* $\text{exposure} = 90.0 \times 0.25 = 22.50$
-* $\text{vulnerability} = 95.0 \times 0.20 = 19.00$
-* $\text{history} = 90.0 \times 0.20 = 18.00$
-* **Total Calculated Priority Score:** $32.55 + 22.50 + 19.00 + 18.00 = \mathbf{92.05}$ ($\ge 71.0 \rightarrow$ **Immediate** Category).
+* `hazard = 93.0 × 0.35 = 32.55`
+* `exposure = 90.0 × 0.25 = 22.50`
+* `vulnerability = 95.0 × 0.20 = 19.00`
+* `history = 90.0 × 0.20 = 18.00`
+* **Total Calculated Priority Score:** `32.55 + 22.50 + 19.00 + 18.00 = 92.05` (≥ 71.0 → **Immediate** Category).
 
 For **Phulani Safe Zone**:
-* $\text{hazard} = 20.0 \times 0.35 = 7.00$
-* $\text{exposure} = 25.0 \times 0.25 = 6.25$
-* $\text{vulnerability} = 20.0 \times 0.20 = 4.00$
-* $\text{history} = 15.0 \times 0.20 = 3.00$
-* **Total Calculated Priority Score:** $7.00 + 6.25 + 4.00 + 3.00 = \mathbf{20.25}$ ($< 31.0 \rightarrow$ **Monitor** Category).
+* `hazard = 20.0 × 0.35 = 7.00`
+* `exposure = 25.0 × 0.25 = 6.25`
+* `vulnerability = 20.0 × 0.20 = 4.00`
+* `history = 15.0 × 0.20 = 3.00`
+* **Total Calculated Priority Score:** `7.00 + 6.25 + 4.00 + 3.00 = 20.25` (&lt; 31.0 → **Monitor** Category).
 
 ---
 

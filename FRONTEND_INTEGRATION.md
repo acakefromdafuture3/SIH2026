@@ -637,7 +637,7 @@ For the GIS / Map and Dashboard UI developer:
 
 | Priority Category | Threshold Score | Recommended Color Code | Tailwind Class |
 | :--- | :--- | :--- | :--- |
-| **Immediate** | $\ge 71$ | `#EF4444` (Red) | `bg-red-500 text-white` |
-| **Short-term** | $\ge 51$ | `#F97316` (Orange) | `bg-orange-500 text-white` |
-| **Medium-term** | $\ge 31$ | `#EAB308` (Yellow) | `bg-yellow-500 text-black` |
-| **Monitor** | $< 31$ | `#10B981` (Green) | `bg-emerald-500 text-white` |
+| **Immediate** | ≥ 71 | `#EF4444` (Red) | `bg-red-500 text-white` |
+| **Short-term** | ≥ 51 | `#F97316` (Orange) | `bg-orange-500 text-white` |
+| **Medium-term** | ≥ 31 | `#EAB308` (Yellow) | `bg-yellow-500 text-black` |
+| **Monitor** | &lt; 31 | `#10B981` (Green) | `bg-emerald-500 text-white` |
