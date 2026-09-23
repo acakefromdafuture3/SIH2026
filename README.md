@@ -10,6 +10,7 @@ ResQ turns that question into a transparent, tunable, map-first answer for disas
 <br/>
 
 ![Status](https://img.shields.io/badge/status-hackathon_prototype-orange)
+[![Live Demo](https://img.shields.io/badge/demo-live-brightgreen)](https://sih2026-4b480.web.app/)
 ![Frontend](https://img.shields.io/badge/frontend-React_18_+_Vite-06b6d4)
 ![Backend](https://img.shields.io/badge/backend-Firebase_Cloud_Functions-ffca28)
 ![DB](https://img.shields.io/badge/database-Cloud_Firestore-ff8f00)
@@ -99,6 +100,7 @@ ResQ is a **single decision-support dashboard** that ingests village-level hazar
 
 | | |
 | :-- | :-- |
+| **Live app** | [https://sih2026-4b480.web.app/](https://sih2026-4b480.web.app/) |
 | **Frontend dev server** | `http://localhost:3000` |
 | **Cloud Functions (Mumbai)** | `https://<function>-<hash>-el.a.run.app` / `asia-south1` |
 | **Firebase project** | `sih2026-4b480` |
